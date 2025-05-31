@@ -5,14 +5,14 @@
 </script>
 <style>
     .graphic {
-  position: sticky;
-  top: 0;
-  height: 100vh;             /* toda la altura de la ventana */
-  display: flex;
-  align-items: flex-end;     /* pega el contenido abajo */
-  justify-content: center;   /* centra horizontalmente */
-  padding-bottom: 1rem;      /* opcional: un pequeño margen al fondo */
-}
+    position: sticky;
+    top: 0;
+    height: 100vh;             /* toda la altura de la ventana */
+    display: flex;
+    align-items: flex-end;     /* pega el contenido abajo */
+    justify-content: center;   /* centra horizontalmente */
+    padding-bottom: 1rem;      /* opcional: un pequeño margen al fondo */
+    }
     svg {
       width: 25%;  /* controla aquí el ancho final */
       height: auto;
