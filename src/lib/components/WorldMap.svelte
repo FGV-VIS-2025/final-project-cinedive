@@ -1,13 +1,14 @@
 <script>
   import { onMount, tick } from 'svelte';
   import * as d3 from 'd3';
-  
+  import { fitas } from '../store/fitas.js';
+  import { get } from 'svelte/store';
 
   export let width = 800;
   export let height = 450;
   export let geoData;
   export let data;
-  let fitas = new Set();
+  //let fitas = new Set();
 
   // definindo variaveis globais
   let svgEl;
@@ -216,15 +217,11 @@
       .attr("height", d => d.height)
       .attr("fill", "steelblue")
       .attr("opacity", 0.7)
-      .attr("stroke", d => fitas.has(d.country) ? "gold" : "steelblue")
+      .attr("stroke", d => get(fitas).has(d.country) ? "gold" : "steelblue")
       .on("click", (event, d) => {
-        if (fitas.has(d.country)) {
-          fitas.delete(d.country);
-        } else {
-          fitas.add(d.country);
-        }
+        fitas.toggle(d.country);  // seu método da store que adiciona/remove reativamente
         drawCountries(); // redesenha para atualizar a cor
-        console.log("fitas:", Array.from(fitas));
+        console.log("fitas:", get(fitas)); // pega snapshot atual
       });
 
     g.selectAll("circle")
@@ -295,24 +292,25 @@
           .filter(f => f.properties.continent === d.continent)
           .map(f => f.properties.name);
 
-        const allSelected = countriesInContinent.every(c => fitas.has(c));
+        const allSelected = countriesInContinent.every(c => get(fitas).has(c));
         return allSelected ? "gold" : "steelblue";
       })
       .on("click", (event, d) => {
+
         const countriesInContinent = geoData.features
           .filter(f => f.properties.continent === d.continent)
           .map(f => f.properties.name);
 
-        const allSelected = countriesInContinent.every(c => fitas.has(c));
+        const allSelected = countriesInContinent.every(c => get(fitas).has(c));
 
         if (allSelected) {
-          countriesInContinent.forEach(c => fitas.delete(c));
+          countriesInContinent.forEach(c => fitas.delete(c));  // se esses métodos existirem na store
         } else {
           countriesInContinent.forEach(c => fitas.add(c));
         }
 
-        drawContinents(); // redesenha para refletir
-        console.log("fitas:", Array.from(fitas));
+        drawContinents();
+        console.log("fitas:", get(fitas));
       });
 
     g.selectAll("circle")
