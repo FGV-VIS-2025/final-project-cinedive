@@ -88,7 +88,7 @@
   }
 
   .scroll__text .step {
-    margin-bottom: 100vh;
+    margin-bottom: 80vh;
   }
 
   .scroll__graphic {
