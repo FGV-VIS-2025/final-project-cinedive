@@ -110,7 +110,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
+  }  
 
   .content-box {
     border: 1px solid #ccc;
