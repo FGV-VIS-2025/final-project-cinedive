@@ -35,4 +35,4 @@ function createFitasStore() {
   };
 }
 
-export const fitas = writable(new Set());
+export const fitas = createFitasStore();
