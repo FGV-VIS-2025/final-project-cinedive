@@ -1,0 +1,397 @@
+/* global.css */
+@import '/nouislider.css';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
+.year-slider {
+  margin: 1em 0;
+  width: 100%;
+  max-width: 500px;
+}
+
+.noUi-connect {
+  background: #fff570;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  background: #2c2b2b;
+  color: #f0e6d2;
+  font-family: 'Roboto', sans-serif;
+}
+
+h1, h2 {
+  font-family: sans-serif;
+  color: #F5C518;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+input, button {
+  background: #1c1c1c;
+  border: 1px solid #695a03;
+  color: #f0e6d2;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+button:hover {
+  background: #ffd700;
+  color: #0d0d0d;
+  cursor: pointer;
+}
+
+/* Centralização de gráficos */
+.chart-container,
+.bubble-container,
+.graph-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 2rem 0;
+  width: 100%;
+}
+
+.bubble-legend {
+  font-size: 1.25rem;    /* texto más grande */
+  gap: 0.75rem;          /* mayor separación entre líneas */
+}
+
+/* Agrandar SVG de tamaños */
+.bubble-legend svg {
+  width: 200px;
+  height: 200px;
+}
+
+/* Agrandar círculos dentro del SVG */
+.bubble-legend svg circle {
+  stroke: #ffffff;
+  stroke-width: 2px;
+}
+
+.bubble-color-legend span {
+  width: 24px;
+  height: 24px;
+}
+
+
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+}
+
+.network-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.film-details {
+  max-width: 800px;
+  margin-top: 1rem;
+}
+
+.instructions {
+  text-align: center;
+  margin-top: 1rem;
+  color: #ccc;
+}
+
+#tooltip {
+  background: #424242;
+  color: #fffcfc;
+  border: 1px solid #ffd700;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+/* Evita conflitos visuais entre os tooltips */
+.tooltip-hbar,
+.tooltip-bubble {
+  position: absolute;
+  display: none;
+  background: #424242;
+  color: #fffcfc;
+  border: 1px solid #ffd700;
+  padding: 0.5rem;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* Escopo das barras do HBarChart */
+.hbar-chart .bar-hbar {
+  fill: #ffd036;
+}
+
+.hbar-chart .chart-title {
+  font-size: 16px;
+  font-weight: bold;
+  text-anchor: middle;
+  fill: white;
+}
+
+.hbar-chart .axis-label {
+  font-size: 12px;
+  fill: white;
+}
+
+.hbar-chart .axis-label-x,
+.hbar-chart .axis-label-y {
+  text-anchor: middle;
+  fill: white;
+}
+
+.bubble-chart circle {
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.bubble-chart circle:hover {
+  stroke: #ffd700;
+  stroke-width: 1.5px;
+  opacity: 1;
+}
+
+.tooltip-network {
+  position: absolute;
+  display: none;
+  background: #424242;
+  border: 1px solid #ffd700;
+  padding: 0.5rem;
+  border-radius: 4px;
+  pointer-events: none;
+  color: #fff;
+  font-size: 13px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+  z-index: 10;
+}
+
+.film-network circle {
+  cursor: pointer;
+}
+
+.film-network line {
+  stroke-opacity: 0.7;
+}
+
+.film-details-card {
+  background-color: #1e1e1e;
+  border: 1px solid #695a03;
+  padding: 1rem;
+  margin-top: 1rem;
+  border-radius: 8px;
+  max-width: 600px;
+  color: #f0e6d2;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.film-details-card h2 {
+  margin-top: 0;
+  color: #ffd700;
+}
+
+.chart-pair-container {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap; /* permite quebrar para mobile */
+}
+
+.chart-pair-container .chart-container {
+  flex: 1 1 45%;
+  display: flex;
+  justify-content: center;
+}
+
+.bubble-legend,
+.network-legend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 1.25rem;   /* texto más grande */
+  gap: 0.75rem;         /* mayor separación */
+  margin-top: 1rem;
+  color: #f0e6d2;
+}
+
+/* Leyenda de color */
+.bubble-color-legend,
+.network-legend-colors {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.legend-color,
+.legend-link {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+
+/* Colores específicos */
+.legend-color.has-win,
+.legend-link.win {
+  background: #ffd700;
+}
+.legend-color.no-win,
+.legend-link.no-win {
+  background: #aaa;
+}
+
+/* Leyenda de tamaño (SVG círculos centrados) */
+.bubble-legend svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Leyenda de FilmNetwork: iconos inline */
+.network-legend p {
+  display: flex;
+  align-items: center;
+}
+.network-legend span {
+  width: 24px;
+  height: 24px;
+  margin-right: 0.5rem;
+  display: inline-block;
+}
+.network-legend .legend-circle {
+  border-radius: 50%;
+  background: #ffd700;
+}
+.network-legend .legend-star {
+  clip-path: polygon(
+    50% 0%, 61% 35%, 98% 35%,
+    68% 57%, 79% 91%,
+    50% 70%, 21% 91%,
+    32% 57%, 2% 35%,
+    39% 35%
+  );
+  background: #ccc;
+}
+
+
+.bubble-legend,
+.network-legend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 1.25rem;   /* texto más grande */
+  gap: 0.75rem;         /* mayor separación */
+  margin-top: 1rem;
+  color: #f0e6d2;
+}
+
+/* Leyenda de color */
+.bubble-color-legend,
+.network-legend-colors {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.legend-color,
+.legend-link {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  border-radius: 50%;
+  border: 1px solid #fff;
+}
+
+/* Colores específicos */
+.legend-color.has-win,
+.legend-link.win {
+  background: #ffd700;
+}
+.legend-color.no-win,
+.legend-link.no-win {
+  background: #aaa;
+}
+
+/* Leyenda de tamaño (SVG círculos centrados) */
+.bubble-legend svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Leyenda de FilmNetwork: iconos inline */
+.network-legend p {
+  display: flex;
+  align-items: center;
+}
+.network-legend span {
+  width: 24px;
+  height: 24px;
+  margin-right: 0.5rem;
+  display: inline-block;
+}
+.network-legend .legend-circle {
+  border-radius: 50%;
+  background: #ffd700;
+}
+.network-legend .legend-star {
+  clip-path: polygon(
+    50% 0%, 61% 35%, 98% 35%,
+    68% 57%, 79% 91%,
+    50% 70%, 21% 91%,
+    32% 57%, 2% 35%,
+    39% 35%
+  );
+  background: #ccc;
+}
+.network-legend .legend-link.director { background: #1f77b4; }
+.network-legend .legend-link.writer   { background: #2ca02c; }
+.network-legend .legend-link.actor    { background: #ff6600; }
+
+.bubble-chart circle.highlighted {
+  stroke: #ffd700;
+  stroke-width: 1px;
+  opacity: 1;
+  filter: drop-shadow(0px 0px 6px #ffd700);
+}
+
+.search-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.clear-button {
+  background: #1c1c1c;
+  border: 1px solid #695a03;
+  color: #f0e6d2;
+  padding: 0.5rem;
+  border-radius: 4px;
+  width: 200px;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.clear-button:hover {
+  background: #ffd700;
+  color: #0d0d0d;
+  cursor: pointer;
+}
