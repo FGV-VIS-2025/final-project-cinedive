@@ -31,9 +31,12 @@
 
   <!-- Columna de pasos -->
   <div class="scroll__text">
-    <div class="step" data-step="0">
+    <div class="step" data-step="0">  
       <h1>Step 1</h1>
       <div class="content-box"></div>
+      <div> 
+
+      </div>
     </div>
     <div class="step" data-step="1">
       <h1>Step 2</h1>
@@ -114,3 +117,13 @@
     width: 50%;
   }
 </style>
+
+
+
+
+
+
+
+
+
+
