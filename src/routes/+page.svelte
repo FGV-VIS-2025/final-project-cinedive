@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import Bubble from '$lib/components/bubble.svelte';
+  import Fita from '../lib/components/Fita.svelte';
 
   let current = 0;
   let scroller;
@@ -33,6 +34,7 @@
   <div class="scroll__text">
     <div class="step" data-step="0">
       <h1>Step 1</h1>
+      <Fita></Fita>
       <div class="content-box"></div>
     </div>
     <div class="step" data-step="1">
@@ -84,7 +86,7 @@
 
   .scroll__text {
     /* nada que cambiar aquí */
-    padding: 2rem;
+    padding: 0rem;
   }
 
   .scroll__text .step {
