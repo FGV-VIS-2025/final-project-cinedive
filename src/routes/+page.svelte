@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
-  import Bubble from '$lib/components/bubble.svelte';
+  import Grafo from '$lib/components/grafo.svelte'; // <-- Importa tu componente
 
   let current = 0;
   let scroller;
@@ -26,33 +26,34 @@
   <div class="step intro">
     <h1>¡Bienvenidos a CineDive!</h1>
     <p>Esta es la página de introducción antes de comenzar con los pasos.</p>
-    
   </div>
 
   <!-- Columna de pasos -->
   <div class="scroll__text">
     <div class="step" data-step="0">  
       <h1>Step 1</h1>
-      <div class="content-box"></div>
-      <div> 
-
+      <div class="content-box">
+        <p>Texto explicativo del paso 1…</p>
       </div>
     </div>
+
     <div class="step" data-step="1">
-      <h1>Step 2</h1>
+      <h1>Step 2: Explora la Red</h1>
       <div class="content-box split">
         <div class="text">
-          <p>Aquí va tu texto explicativo del paso 2…</p>
+          <p>En este paso veremos cómo se agrupan las películas por género y cómo filtrar por años.</p>
+          <p>Mueve la barra de tiempo para cambiar el rango de años y observa la red.</p>
         </div>
       </div>
     </div>
-    <!-- más steps… -->
+
+    <!-- Puedes agregar más steps si los necesitas -->
   </div>
 
   <!-- Columna gráfica -->
   <div class="scroll__graphic">
     {#if current === 1}
-      <Bubble />
+      <Grafo />
     {/if}
   </div>
 </div>
@@ -62,7 +63,7 @@
   :global(html, body) {
     margin: 0;
     padding: 0;
-    overflow-x: hidden; /* opcional, para evitar scroll horizontal */
+    overflow-x: hidden;
   }
 
   .scroll {
@@ -74,19 +75,18 @@
   /* Intro ocupa columnas 1 y 2 */
   .step.intro {
     grid-column: 1 / -1;
-    height: 100vh;               /* pantalla completa */
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: hsl(0, 0%, 15%);  
+    background-color: hsl(0, 0%, 15%);
     color: hsl(51, 100%, 79%);
     justify-content: center;
     align-items: center;
     text-align: center;
-    margin-bottom: 5vh;  
+    margin-bottom: 5vh;
   }
 
   .scroll__text {
-    /* nada que cambiar aquí */
     padding: 2rem;
   }
 
@@ -117,13 +117,3 @@
     width: 50%;
   }
 </style>
-
-
-
-
-
-
-
-
-
-
