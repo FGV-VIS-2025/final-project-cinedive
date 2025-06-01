@@ -1,65 +1,130 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
-  import Grafo from '$lib/components/grafo.svelte'; // <-- Importa tu componente
+  import scrollama from 'scrollama';
+
+  import FilmSearch from '$lib/charts/FilmSearch.svelte';
+  import FilmNetwork from '$lib/charts/FilmNetwork.svelte';
+  import { loadMoviesLastMovies } from '$lib/utils/dataLoader.js';
 
   let current = 0;
   let scroller;
 
+  let allMovies = [];
+  let searchQuery = '';
+  let filteredMovies = [];
+  let selectedMovie = null;
+
   onMount(async () => {
     if (!browser) return;
-    const { default: scrollama } = await import('scrollama');
+
     scroller = scrollama()
       .setup({ step: '.step', offset: 0.5, debug: false })
       .onStepEnter(({ index }) => (current = index));
+
     window.addEventListener('resize', scroller.resize);
+
+    try {
+      const moviesData = await loadMoviesLastMovies();
+      allMovies = moviesData.map(m => ({
+        tconst: m.tconst,
+        primaryTitle: m.primaryTitle,
+        startYear: +m.startYear
+      }));
+      filteredMovies = allMovies;
+    } catch (err) {
+      console.error('Error cargando películas:', err);
+    }
   });
 
   onDestroy(() => {
     scroller?.destroy?.();
     if (browser) window.removeEventListener('resize', scroller.resize);
   });
+
+  $: if (searchQuery.trim() === '') {
+    filteredMovies = allMovies;
+  } else {
+    const q = searchQuery.toLowerCase();
+    filteredMovies = allMovies.filter(m =>
+      m.primaryTitle.toLowerCase().includes(q)
+    );
+  }
+
+  function onMovieSelect(event) {
+    selectedMovie = event.detail.id;
+  }
 </script>
 
 <div class="scroll">
-  <!-- INTRO ocupa ambas columnas -->
-  <div class="step intro">
+  <div class="step intro" data-step="0">
     <h1>¡Bienvenidos a CineDive!</h1>
-    <p>Esta es la página de introducción antes de comenzar con los pasos.</p>
+    <p>
+      En esta experiencia podrás buscar cualquier película y visualizar su red
+      de conexiones junto con un bar‐chart interactivo por año.
+    </p>
   </div>
 
-  <!-- Columna de pasos -->
   <div class="scroll__text">
-    <div class="step" data-step="0">  
-      <h1>Step 1</h1>
+    <div class="step" data-step="1">
+      <h1>Step 1: Busca tu película</h1>
       <div class="content-box">
-        <p>Texto explicativo del paso 1…</p>
+        <p>Escribe al menos tres letras para ver sugerencias.</p>
+      </div>
+      <div class="search-wrapper">
+        <FilmSearch
+          bind:query={searchQuery}
+          options={filteredMovies}
+          on:select={onMovieSelect}
+        />
       </div>
     </div>
 
-    <div class="step" data-step="1">
-      <h1>Step 2: Explora la Red</h1>
+    <div class="step" data-step="2">
+      <h1>Step 2: Explora la red y el bar‐chart por año</h1>
       <div class="content-box split">
         <div class="text">
-          <p>En este paso veremos cómo se agrupan las películas por género y cómo filtrar por años.</p>
-          <p>Mueve la barra de tiempo para cambiar el rango de años y observa la red.</p>
+          <p>
+            Aquí ves la red de conexiones (profundidad ≤ 2 saltos) alrededor de la
+            película seleccionada. Ajusta el rango de años con el slider para filtrar
+            tanto la red como el gráfico.
+          </p>
         </div>
       </div>
+      <div class="network-wrapper">
+        {#if selectedMovie}
+          <FilmNetwork movieId={selectedMovie} />
+        {:else}
+          <p class="placeholder-text">Primero selecciona una película en Step 1.</p>
+        {/if}
+      </div>
     </div>
-
-    <!-- Puedes agregar más steps si los necesitas -->
   </div>
 
-  <!-- Columna gráfica -->
   <div class="scroll__graphic">
-    {#if current === 1}
-      <Grafo />
+    {#if current === 0}
+      <p class="placeholder-text">Step 0: Bienvenida.</p>
+    {:else if current === 1}
+      {#if selectedMovie}
+        <p class="placeholder-text">
+          Has seleccionado: {selectedMovie}. Baja para ver la red.
+        </p>
+      {:else}
+        <p class="placeholder-text">Step 1: Busca y elige una película.</p>
+      {/if}
+    {:else if current === 2}
+      {#if selectedMovie}
+        <p class="placeholder-text">
+          Step 2: Desliza el rango de años en el bar‐chart.
+        </p>
+      {:else}
+        <p class="placeholder-text">Selecciona una película antes.</p>
+      {/if}
     {/if}
   </div>
 </div>
 
 <style>
-  /* GRID de dos columnas */
   :global(html, body) {
     margin: 0;
     padding: 0;
@@ -72,7 +137,6 @@
     grid-template-columns: 40% 60%;
   }
 
-  /* Intro ocupa columnas 1 y 2 */
   .step.intro {
     grid-column: 1 / -1;
     height: 100vh;
@@ -89,9 +153,37 @@
   .scroll__text {
     padding: 2rem;
   }
-
   .scroll__text .step {
     margin-bottom: 80vh;
+  }
+  .content-box {
+    border: 1px solid #ccc;
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+  .content-box.split {
+    display: flex;
+    gap: 1rem;
+  }
+  .content-box.split .text {
+    width: 100%;
+  }
+
+  .search-wrapper {
+    margin-top: 1rem;
+  }
+
+  .network-wrapper {
+    margin-top: 1rem;
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    min-height: 600px;
+  }
+
+  .placeholder-text {
+    color: #666;
+    font-style: italic;
+    text-align: center;
   }
 
   .scroll__graphic {
@@ -101,19 +193,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .content-box {
-    border: 1px solid #ccc;
     padding: 1rem;
-    margin: 1rem 0;
-  }
-
-  .content-box.split {
-    display: flex;
-    gap: 1rem;
-  }
-  .content-box.split .text {
-    width: 50%;
+    background: #f5f5f5;
   }
 </style>
