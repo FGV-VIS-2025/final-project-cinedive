@@ -6,6 +6,8 @@
   import FilmSearch from '$lib/charts/FilmSearch.svelte';
   import FilmNetwork from '$lib/charts/FilmNetwork.svelte';
   import { loadMoviesLastMovies } from '$lib/utils/dataLoader.js';
+  import Bubble from '$lib/components/bubble.svelte';
+  import Fita from '../lib/components/Fita.svelte';
 
   let current = 0;
   let scroller;
@@ -66,6 +68,11 @@
   </div>
 
   <div class="scroll__text">
+    <div class="step" data-step="0">
+      <h1>Step 1</h1>
+      <Fita></Fita>
+      <div class="content-box"></div>
+    </div>
     <div class="step" data-step="1">
       <h1>Step 1: Busca tu película</h1>
       <div class="content-box">
