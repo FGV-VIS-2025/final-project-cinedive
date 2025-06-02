@@ -2,11 +2,13 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
+  import { base } from '$app/paths';
   import FilmSearch from '$lib/charts/FilmSearch.svelte';
   import FilmNetwork from '$lib/charts/FilmNetwork.svelte';
-  import { loadMoviesLastMovies } from '$lib/utils/dataLoader.js';
+  import { loadMoviesLastMovies, getDataForFitas } from '$lib/utils/dataLoader.js';
   import Bubble from '$lib/charts/bubble.svelte';
   import Fita from '$lib/components/Fita.svelte';
+  import WorldMap from '$lib/components/WorldMap.svelte';
 
 
   //let current = 0;
@@ -17,6 +19,24 @@
   let selectedMovie = null;
   let isLoading = true;
   let error = null;
+
+  // pegando mapa
+  let worldGeoJson;
+  let data_for_fitas;
+
+  onMount(async () => {
+    const res = await fetch(`${base}/mapas/World.json`);
+    if (res.ok) {
+      worldGeoJson = await res.json();
+    } else {
+      console.error('Erro ao carregar world.json:', res.status);
+    }
+
+    data_for_fitas = await getDataForFitas()
+    console.log("Fitas carregadas:", data_for_fitas);
+  });
+
+
 
   // Cuando el usuario decide “ver el grafo completo”, activamos esta bandera
   let showGraphView = false;
@@ -94,6 +114,11 @@
       </section>
     </div>
 
+    <!-- Colocando a fita feia -->
+    <div class="overlay">
+      <Fita></Fita>
+    </div> 
+
     <!-- Main Content con scrollama -->
 
 
@@ -106,6 +131,11 @@
           Enter at least three letters of a movie title to see suggestions.
           Our database includes thousands of movies and their related titles.
         </p>
+        <div>
+          {#if worldGeoJson && data_for_fitas}
+            <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
+          {/if}
+        </div>
 
         {#if isLoading}
           <div class="loading">
@@ -463,6 +493,8 @@
     min-height: 100vh;
     padding: 2rem;
     box-sizing: border-box;
+    padding-left: 10rem;
+
   }
 
   /* =========================
@@ -487,6 +519,7 @@
     }
     .step {
       margin-bottom: 50vh;
+      padding-left: 270;
     }
     .intro-content h1 {
       font-size: 2.5rem;
@@ -526,8 +559,18 @@
 
     .step {
       padding: 1rem 0;
+      padding-left: 20rem;
     }
 
+  }
+
+  .overlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 3px;
+    background-color: rgba(0,0,0,0); 
+    z-index: 9999; 
   }
 
   

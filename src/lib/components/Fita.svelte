@@ -7,7 +7,7 @@
 
 
   export let howmany = 3;
-  export let width = 800;
+  export let width = 200;
   export let height = 1000;
 
 
@@ -24,8 +24,8 @@
   ]
   const startpx = 0;
   const startpy = 50;
-  const startx = 10;
-  const starty = 200;
+  const startx = 20;
+  const starty = 130;
   const colorfita = "#802040"
   const colorframe = "#807040"
 
