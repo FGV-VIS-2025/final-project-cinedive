@@ -6,7 +6,7 @@
   import FilmNetwork from '$lib/charts/FilmNetwork.svelte';
   import { loadMoviesLastMovies } from '$lib/utils/dataLoader.js';
   import Bubble from '$lib/charts/bubble.svelte';
-  import Fita from '../lib/components/Fita.svelte';
+  import Fita from '$lib/components/Fita.svelte';
 
 
   //let current = 0;
