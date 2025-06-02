@@ -2,16 +2,16 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
+  import { base } from '$app/paths';
   import FilmSearch from '$lib/charts/FilmSearch.svelte';
   import FilmNetwork from '$lib/charts/FilmNetwork.svelte';
-  import { loadMoviesLastMovies } from '$lib/utils/dataLoader.js';
+  import { loadMoviesLastMovies, getDataForFitas } from '$lib/utils/dataLoader.js';
   import Bubble from '$lib/charts/bubble.svelte';
-  import Fita from '../lib/components/Fita.svelte';
+  import Fita from '$lib/components/Fita.svelte';
+  import WorldMap from '$lib/components/WorldMap.svelte';
 
 
-  let current = 0;
-  let scroller;
-  let handleResize;
+  //let current = 0;
 
   let allMovies = [];
   let searchQuery = '';
@@ -19,6 +19,24 @@
   let selectedMovie = null;
   let isLoading = true;
   let error = null;
+
+  // pegando mapa
+  let worldGeoJson;
+  let data_for_fitas;
+
+  onMount(async () => {
+    const res = await fetch(`${base}/mapas/World.json`);
+    if (res.ok) {
+      worldGeoJson = await res.json();
+    } else {
+      console.error('Erro ao carregar world.json:', res.status);
+    }
+
+    data_for_fitas = await getDataForFitas()
+    console.log("Fitas carregadas:", data_for_fitas);
+  });
+
+
 
   // Cuando el usuario decide “ver el grafo completo”, activamos esta bandera
   let showGraphView = false;
@@ -28,90 +46,41 @@
     ? allMovies.find(m => m.tconst === selectedMovie)
     : null;
 
-  // Al montar, cargamos la lista de películas y configuramos scrollama
-  onMount(async () => {
-    if (!browser) return;
+  let observer;
 
-    // Carga de películas para el autocomplete
-    try {
-      const moviesData = await loadMoviesLastMovies();
-      allMovies = moviesData
-        .map(m => ({
-          tconst: m.tconst,
-          primaryTitle: m.primaryTitle,
-          startYear: m.startYear ? +m.startYear : null
-        }))
-        .filter(m => m.primaryTitle && m.primaryTitle.trim() !== '');
-      filteredMovies = allMovies;
-      isLoading = false;
-    } catch (err) {
-      console.error('Error loading movies:', err);
-      error = 'Failed to load movie data. Please refresh the page.';
-      isLoading = false;
-    }
+  onMount(() => {
+    const steps = document.querySelectorAll('.step');
 
-    // Import dinámico de scrollama (para el modo búsqueda/pasos)
-    const Scrollama = (await import('scrollama')).default;
-    scroller = Scrollama()
-      .setup({
-        step: '.step',
-        container: '.scroll__text',
-        graphic: '.scroll__graphic',
-        offset: 0.5,
-        debug: false
-      })
-      .onStepEnter(({ index }) => {
-        current = index + 1;
-      });
-
-    handleResize = () => {
-      if (scroller && scroller.resize) {
-        scroller.resize();
+    observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const stepNum = +entry.target.getAttribute('data-step');
+            currentStep = stepNum;
+          }
+        });
+      },
+      {
+        threshold: 0.6
       }
-    };
-    window.addEventListener('resize', handleResize);
+    );
 
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
+    steps.forEach((step) => observer.observe(step));
   });
 
   onDestroy(() => {
-    if (scroller && typeof scroller.destroy === 'function') {
-      scroller.destroy();
-    }
+    if (observer) observer.disconnect();
   });
 
-  // Filtrado reactivo del autocomplete
-  $: if (searchQuery.trim().length < 3) {
-    filteredMovies = allMovies;
-  } else {
-    const q = searchQuery.toLowerCase().trim();
-    filteredMovies = allMovies
-      .filter(m => m.primaryTitle.toLowerCase().includes(q))
-      .slice(0, 100);
-  }
+  let currentStep = 0;
 
-  // Cuando el usuario selecciona un ítem del autocomplete:
   function onMovieSelect(event) {
-    selectedMovie = event.detail.id; // tconst de la película elegida
-    showGraphView = true;            // cambiar a “modo grafo completo”
+    selectedMovie = event.detail;
   }
 
-  // Resetea todo y vuelve al buscador
   function handleBack() {
     showGraphView = false;
-    selectedMovie = null;
-    searchQuery = '';
-  }
-
-  // Scroll a paso específico (para botón “Return to Step 1”)
-  function goToStep(stepIndex) {
-    current = stepIndex + 1;
-    const stepElement = document.querySelector(`.step[data-step="${stepIndex + 1}"]`);
-    if (stepElement) {
-      stepElement.scrollIntoView({ behavior: 'smooth' });
-    }
+    currentStep = 1;
   }
 </script>
 
@@ -123,161 +92,175 @@
   />
 </svelte:head>
 
-{#if !showGraphView}
+<!-- {#if !showGraphView} -->
   <!-- ========================
        MODO BÚSQUEDA / PASOS
      ======================== -->
-  <div class="scroll-container">
+  <div class="step-container">
     <!-- Intro Section -->
-    <section class="intro-section">
-      <div class="intro-content">
-        <h1>Welcome to CineDive!</h1>
-        <p class="intro-text">
-          Discover the fascinating connections between films through actors, directors, and collaborators.
-          An interactive experience exploring the history of cinema.
-        </p>
-        <div class="scroll-indicator">
-          <span>Scroll to start</span>
-          <div class="arrow-down"></div>
+    <div class="step" data-step="0">
+      <section class="intro-section">
+        <div class="intro-content">
+          <h1>Welcome to CineDive!</h1>
+          <p class="intro-text">
+            Discover the fascinating connections between films through actors, directors, and collaborators.
+            An interactive experience exploring the history of cinema.
+          </p>
+          <div class="scroll-indicator">
+            <span>Scroll to start</span>
+            <div class="arrow-down"></div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
+
+    <!-- Colocando a fita feia -->
+    <div class="overlay">
+      <Fita></Fita>
+    </div> 
 
     <!-- Main Content con scrollama -->
-    <div class="scroll-layout">
-      <!-- Texto con pasos -->
-      <div class="scroll__text">
-        <!-- Step 1: Búsqueda -->
-        <div class="step" data-step="1">
-          <div class="step-content">
-            <h2>Step 1: Search your Film</h2>
-            <p class="step-description">
-              Enter at least three letters of a movie title to see suggestions.
-              Our database includes thousands of movies and their related titles.
-            </p>
 
-            {#if isLoading}
-              <div class="loading">
-                <div class="spinner"></div>
-                <p>Loading movies...</p>
-              </div>
-            {:else if error}
-              <div class="error">
-                <p>{error}</p>
-                <button class="retry-btn" on:click={() => location.reload()}>
-                  Try again
-                </button>
-              </div>
-            {:else}
-              <div class="search-section">
-                <FilmSearch
-                  bind:query={searchQuery}
-                  options={filteredMovies}
-                  on:select={onMovieSelect}
-                  placeholder="Search movie..."
-                />
 
-                {#if selectedMovieInfo}
-                  <div class="selected-movie">
-                    <h4>Selected film:</h4>
-                    <div class="movie-card">
-                      <strong>{selectedMovieInfo.primaryTitle}</strong>
-                      {#if selectedMovieInfo.startYear}
-                        <span class="year">({selectedMovieInfo.startYear})</span>
-                      {/if}
-                    </div>
-                    <button class="reset-btn" on:click={() => { selectedMovie = null; searchQuery = ''; }}>
-                      Change selection
-                    </button>
-                  </div>
-                {/if}
-              </div>
-            {/if}
-          </div>
-        </div>
 
-        <!-- Step 2: Instrucción para pasar al grafo -->
-        <div class="step" data-step="2">
-          <div class="step-content">
-            <h2>Step 2: Explore the connections</h2>
-            <p class="step-description">
-              Once you've chosen a film, you'll see an option to open the full network graph in a new view.
-            </p>
-            {#if !selectedMovie}
-              <div class="warning-message">
-                <p>You must first select a movie in Step 1</p>
-                <button class="back-btn" on:click={() => goToStep(0)}>
-                  Return to Step 1
-                </button>
-              </div>
-            {/if}
-
-            {#if selectedMovie}
-              <div class="open-graph-note">
-                <p>
-                  You selected <strong>{selectedMovieInfo.primaryTitle}</strong>. 
-                  Click the button below to view the full network graph.
-                </p>
-                <button class="view-graph-btn" on:click={() => (showGraphView = true)}>
-                  View Full Graph
-                </button>
-              </div>
-            {/if}
-          </div>
-        </div>
-
-        <!-- Step 3: Consejos si aún no hay selección -->
-        <div class="step" data-step="3">
-          <div class="step-content">
-            <h2>Step 3: Analyze the Data</h2>
-            <p class="step-description">
-              Use the filters and explore different connections. Hover on nodes for details.
-            </p>
-            {#if !selectedMovie}
-              <div class="warning-message">
-                <p>⚠️ You must first select a movie in Step 1</p>
-                <button class="back-btn" on:click={() => goToStep(0)}>
-                  Return to Step 1
-                </button>
-              </div>
-            {/if}
-
-            {#if selectedMovie}
-              <div class="analytics-tips">
-                <h4>Exploration Tips:</h4>
-                <ul>
-                  <li>Adjust the year range to see temporal trends</li>
-                  <li>Filter by genres to find specific patterns</li>
-                  <li>Use rating and votes filters for quality</li>
-                  <li>Hover over nodes to see details</li>
-                </ul>
-              </div>
-            {/if}
-          </div>
-        </div>
-      </div>
-
-      <!-- Gráfico Sticky (en modo scroll) solo muestra preview -->
-      <div class="scroll__graphic">
-        <div class="graphic-content">
-          <!-- Si hay película seleccionada, puede mostrarse un preview muy básico -->
-          {#if selectedMovie}
-            <div class="network-preview">
-              <p>Once ready, click “View Full Graph”</p>
-            </div>
-          {:else}
-            <div class="welcome-graphic">
-              <p>Select a movie in Step 1 to see a preview</p>
-            </div>
+    <!-- Step 1: Búsqueda -->
+    <div class="step" data-step="1">
+      <div class="step-content">
+        <h2>Step 1: Search your Film</h2>
+        <p class="step-description">
+          Enter at least three letters of a movie title to see suggestions.
+          Our database includes thousands of movies and their related titles.
+        </p>
+        <div>
+          {#if worldGeoJson && data_for_fitas}
+            <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
           {/if}
         </div>
+
+        {#if isLoading}
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading movies...</p>
+          </div>
+        {:else if error}
+          <div class="error">
+            <p>{error}</p>
+            <button class="retry-btn" on:click={() => location.reload()}>
+              Try again
+            </button>
+          </div>
+        {:else}
+          <div class="search-section">
+            <FilmSearch
+              bind:query={searchQuery}
+              options={filteredMovies}
+              on:select={onMovieSelect}
+              placeholder="Search movie..."
+            />
+
+            {#if selectedMovieInfo}
+              <div class="selected-movie">
+                <h4>Selected film:</h4>
+                <div class="movie-card">
+                  <strong>{selectedMovieInfo.primaryTitle}</strong>
+                  {#if selectedMovieInfo.startYear}
+                    <span class="year">({selectedMovieInfo.startYear})</span>
+                  {/if}
+                </div>
+                <button class="reset-btn" on:click={() => { selectedMovie = null; searchQuery = ''; }}>
+                  Change selection
+                </button>
+              </div>
+            {/if}
+          </div>
+        {/if}
       </div>
     </div>
+
+    <!-- Step 2: Instrucción para pasar al grafo -->
+    <div class="step" data-step="2">
+      <div class="step-content">
+        <h2>Step 2: Explore the connections</h2>
+        <p class="step-description">
+          Once you've chosen a film, you'll see an option to open the full network graph in a new view.
+        </p>
+        {#if !selectedMovie}
+          <div class="warning-message">
+            <p>You must first select a movie in Step 1</p>
+              Return to Step 1
+
+          </div>
+        {/if}
+
+        {#if selectedMovie}
+          <div class="open-graph-note">
+            <p>
+              You selected <strong>{selectedMovieInfo.primaryTitle}</strong>. 
+              Click the button below to view the full network graph.
+            </p>
+            <button class="view-graph-btn" on:click={() => (showGraphView = true)}>
+              View Full Graph
+            </button>
+          </div>
+        {/if}
+      </div>
+    </div>
+
+
+
+
+    <!-- Step 3: Consejos si aún no hay selección -->
+    <div class="step" data-step="3">
+      <div class="step-content">
+        <h2>Step 3: Analyze the Data</h2>
+        <p class="step-description">
+          Use the filters and explore different connections. Hover on nodes for details.
+        </p>
+        {#if !selectedMovie}
+          <div class="warning-message">
+            <p>⚠️ You must first select a movie in Step 1</p>
+
+          </div>
+        {/if}
+
+        {#if selectedMovie}
+          <div class="analytics-tips">
+            <h4>Exploration Tips:</h4>
+            <ul>
+              <li>Adjust the year range to see temporal trends</li>
+              <li>Filter by genres to find specific patterns</li>
+              <li>Use rating and votes filters for quality</li>
+              <li>Hover over nodes to see details</li>
+            </ul>
+          </div>
+        {/if}
+      </div>
+    </div>
+
+
+
+    <!-- Gráfico Sticky (en modo scroll) solo muestra preview -->
+    <div class="scroll__graphic">
+      <div class="graphic-content">
+        <!-- Si hay película seleccionada, puede mostrarse un preview muy básico -->
+        {#if selectedMovie}
+          <div class="network-preview">
+            <p>Once ready, click “View Full Graph”</p>
+          </div>
+        {:else}
+          <div class="welcome-graphic">
+            <p>Select a movie in Step 1 to see a preview</p>
+          </div>
+        {/if}
+      </div>
+    </div>
+
+
   </div>
-{:else}
-  <!-- ========================
+<!-- {:else}
+   ========================
        MODO GRAFO COMPLETO
-     ======================== -->
+     ======================== 
   <div class="full-graph-container">
     <button class="back-full-btn" on:click={handleBack}>
       ← Back to Search
@@ -286,7 +269,7 @@
       <FilmNetwork movieId={selectedMovie} />
     {/if}
   </div>
-{/if}
+{/if} -->
 
 <style>
   :global(html, body) {
@@ -299,9 +282,7 @@
   /* ========================
      ESTILOS MODO BÚSQUEDA
    ======================== */
-  .scroll-container {
-    width: 100%;
-  }
+
 
   /* Intro Section */
   .intro-section {
@@ -354,17 +335,7 @@
   }
 
   /* Layout principal */
-  .scroll-layout {
-    display: grid;
-    grid-template-columns: 45% 55%;
-    min-height: 100vh;
-  }
 
-  .scroll__text {
-    padding: 2rem;
-    background: #fafafa;
-    overflow-y: auto;
-  }
 
   .step {
     margin-bottom: 100vh;
@@ -413,7 +384,7 @@
 
   .reset-btn,
   .retry-btn,
-  .back-btn,
+
   .view-graph-btn {
     background: #667eea;
     color: white;
@@ -428,7 +399,7 @@
 
   .reset-btn:hover,
   .retry-btn:hover,
-  .back-btn:hover,
+
   .view-graph-btn:hover {
     background: #5a6fd8;
   }
@@ -510,55 +481,45 @@
     color: #666;
   }
 
+  .step-container {
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+  height: 100vh;
+  scroll-behavior: smooth;
+}
+
+  .step {
+    scroll-snap-align: start;
+    min-height: 100vh;
+    padding: 2rem;
+    box-sizing: border-box;
+    padding-left: 10rem;
+
+  }
+
   /* =========================
      ESTILOS MODO GRAFO COMPLETO
    ========================= */
-  .full-graph-container {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    background: #fafafa;
-  }
 
-  .back-full-btn {
-    margin: 1rem;
-    padding: 0.5rem 1rem;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    align-self: flex-start;
-    transition: background-color 0.2s;
-  }
 
-  .back-full-btn:hover {
-    background: #5a6fd8;
-  }
+
+
 
   /* Ajustamos que FilmNetwork ocupe todo el espacio restante */
-  .full-graph-container :global(.network-svg) {
-    width: 100%;
-    height: calc(100vh - 3rem); /* restamos espacio para el botón “Back” */
-    display: block;
-  }
+
 
   /* ========================
      Estilos compartidos / responsive
    ======================== */
   @media (max-width: 1024px) {
-    .scroll-layout {
-      grid-template-columns: 1fr;
-    }
+
     .scroll__graphic {
       position: relative;
       height: 60vh;
     }
     .step {
       margin-bottom: 50vh;
+      padding-left: 270;
     }
     .intro-content h1 {
       font-size: 2.5rem;
@@ -566,9 +527,7 @@
   }
 
   @media (max-width: 768px) {
-    .scroll__text {
-      padding: 1rem;
-    }
+
     .step-content h2 {
       font-size: 2rem;
     }
@@ -597,15 +556,22 @@
     .step-description {
       font-size: 1rem;
     }
-    .scroll__text {
-      padding: 0.5rem;
-    }
+
     .step {
       padding: 1rem 0;
+      padding-left: 20rem;
     }
-    .back-full-btn {
-      font-size: 0.9rem;
-      margin: 0.75rem;
-    }
+
   }
+
+  .overlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 3px;
+    background-color: rgba(0,0,0,0); 
+    z-index: 9999; 
+  }
+
+  
 </style>
