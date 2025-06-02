@@ -1,5 +1,4 @@
 <!-- src/lib/charts/FilmNetwork.svelte -->
-<!-- src/lib/charts/FilmNetwork.svelte -->
 <script>
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
@@ -538,12 +537,10 @@
     d.fx = d.x;
     d.fy = d.y;
   }
-
   function dragged(event, d) {
     d.fx = event.x;
     d.fy = event.y;
   }
-
   function dragEnded(event, d) {
     if (!event.active) simulation.alphaTarget(0);
     d.fx = null;
@@ -570,9 +567,6 @@
       oscarsWinMin: 0
     };
   }
-
-  
-
 
   $: if (
     loadedGraph &&
@@ -790,7 +784,6 @@
     </div>
   {/if}
 </div>
-
 
 <style>
   .film-network-container {
@@ -1048,6 +1041,24 @@
     font-weight: 400;
   }
 
+  .back-btn {
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    color: #222;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .back-btn:hover {
+    background: #e0e0e0;
+  }
+
   /* Contenedor del grafo */
   .graph-container {
     flex: 1;
@@ -1131,7 +1142,16 @@
   .legend-symbol.star.person {
     background: #ffffff;
     clip-path: polygon(
-      50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%
+      50% 0%,
+      61% 35%,
+      98% 35%,
+      68% 57%,
+      79% 91%,
+      50% 70%,
+      21% 91%,
+      32% 57%,
+      2% 35%,
+      39% 35%
     );
     border-radius: 0;
     border: 1.5px solid #333;

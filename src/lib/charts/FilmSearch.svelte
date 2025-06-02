@@ -40,7 +40,7 @@
   <style>
     .dropdown       { position: relative; width: 300px; }
     .results        { position: absolute; background:#1e1e1e; border:1px solid #695a03;
-                      width:100%; max-height:200px; overflow-y:auto; z-index:100; }
+                      width:100%; max-height:200px; overflow-y:auto; z-index:100; color: #fffdfd}
     .results button { width:100%; text-align:left; padding:.5rem; background:none; border:none;
                       color:inherit; cursor:pointer; }
     .results button:hover,
