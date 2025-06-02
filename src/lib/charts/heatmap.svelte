@@ -157,8 +157,20 @@
 				tooltip.transition().duration(500).style('opacity', 0);
 			})
 			.on('click', function(event, d) {
-				// Ao clicar, atualiza a lista de filmes
-				selectedMovies = d.movies;
+        // 1) Remove 'selected' de todas as células (volta ao estado padrão)
+        d3.selectAll('.cell')
+          .classed('selected', false)
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 1);
+
+        // 2) Marca somente a célula clicada
+        d3.select(this)
+          .classed('selected', true)
+          .attr('stroke', '#000')
+          .attr('stroke-width', 3);
+
+				// 3) Atualiza a lista de filmes
+				selectedMovies = d.movies.slice().sort((a, b) => b.startYear - a.startYear);
 			});
 
 		// Eixo X (Indicações)
@@ -380,4 +392,9 @@
 	:global(.heatmap-tooltip) {
 		z-index: 1000;
 	}
+
+  :global(.cell.selected) {
+    stroke: #000 !important;
+    stroke-width: 3px !important;
+  }
 </style>
