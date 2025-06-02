@@ -1,16 +1,18 @@
 <!-- src/lib/charts/FilmNetwork.svelte -->
+<!-- src/lib/charts/FilmNetwork.svelte -->
 <script>
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import * as d3 from 'd3';
   import { loadGraph, loadMoviesFullData } from '$lib/utils/dataLoader.js';
 
   let graphData = null;
-  let width = 1200;
-  let height = 800;
+  let width = 800;
+  let height = 600;
   let svgElement;
   let tooltipElement;
   let barChartElement;
   let containerElement;
+  let graphContainerElement;
 
   export let movieId;
   const dispatch = createEventDispatcher();
@@ -28,6 +30,7 @@
     endYear: 2025,
     selectedGenres: new Set(),
     ratingMin: 0,
+    ratingMax: 10,
     votesMin: 0,
     oscarsNomMin: 0,
     oscarsWinMin: 0
@@ -37,7 +40,9 @@
   let currentGraph = { nodes: [], links: [] };
   let resizeObserver = null;
 
-  // 1) Al montar, cargamos datos y configuramos el observer de resize
+  // Variables para controlar el tamaño consistente de nodos
+  let globalSizeScale = null;
+
   onMount(async () => {
     await initializeData();
     setupResizeObserver();
@@ -50,7 +55,6 @@
     }
   });
 
-  // 2) Función para cargar grafo y metadatos de películas
   async function initializeData() {
     try {
       isLoading = true;
@@ -73,7 +77,7 @@
         filters = { ...filters, minYear: minY, maxYear: maxY, startYear: minY, endYear: maxY };
       }
 
-      // Determinamos rango de rating, votos y Oscars
+      // Determinamos rangos para todos los filtros
       const movieNodes = graph.nodes.filter(n => n.type === 'movie');
       if (movieNodes.length) {
         const ratings = movieNodes.map(n => +n.averageRating || 0);
@@ -84,6 +88,7 @@
         filters = {
           ...filters,
           ratingMin: Math.floor(d3.min(ratings)),
+          ratingMax: Math.ceil(d3.max(ratings)),
           votesMin: d3.min(votes),
           oscarsNomMin: d3.min(noms),
           oscarsWinMin: d3.min(wins)
@@ -99,10 +104,19 @@
       });
       allGenres = Array.from(genresSet).sort();
 
+      // Creamos escala de tamaño global consistente
+      const allRatings = movieNodes
+        .filter(n => n.averageRating && !isNaN(+n.averageRating))
+        .map(n => +n.averageRating);
+      
+      globalSizeScale = d3
+        .scaleLinear()
+        .domain(allRatings.length ? d3.extent(allRatings) : [0, 10])
+        .range([8, 24]);
+
       loadedGraph = true;
       isLoading = false;
 
-      // Si ya había un movieId seleccionado, dibujamos de inmediato
       if (movieId) {
         updateVisualization();
       }
@@ -113,25 +127,23 @@
     }
   }
 
-  // 3) Observador de cambios de tamaño del contenedor principal
   function setupResizeObserver() {
-    if (!containerElement) return;
+    if (!graphContainerElement) return;
     resizeObserver = new ResizeObserver(entries => {
       for (let entry of entries) {
-        const { width: newWidth } = entry.contentRect;
-        // Ajustamos width; dejamos al menos 400 px
-        if (newWidth > 0 && newWidth !== width) {
-          width = Math.max(400, newWidth - 40);
+        const { width: newWidth, height: newHeight } = entry.contentRect;
+        if (newWidth > 0 && newHeight > 0) {
+          width = Math.max(400, newWidth - 20);
+          height = Math.max(300, newHeight - 20);
           if (loadedGraph && movieId) {
             updateVisualization();
           }
         }
       }
     });
-    resizeObserver.observe(containerElement);
+    resizeObserver.observe(graphContainerElement);
   }
 
-  // 4) Detener y limpiar simulación D3
   function cleanupSimulation() {
     if (simulation) {
       simulation.stop();
@@ -139,7 +151,6 @@
     }
   }
 
-  // 5) Construye el subgrafo filtrado a partir de movieId y los filtros
   function buildFilteredSubgraph() {
     const rootNode = graphData.nodes.find(d => d.id === movieId);
     if (!rootNode) {
@@ -147,12 +158,10 @@
       return { nodes: [], links: [] };
     }
 
-    // 5.1) Filtrar componente completo (todos los nodos con mismo componente)
     const componentId = rootNode.component;
     const componentNodes = graphData.nodes.filter(d => d.component === componentId);
     const componentIds = new Set(componentNodes.map(d => d.id));
 
-    // 5.2) Filtrar enlaces que conecten dentro de ese componente
     const componentLinks = graphData.links
       .filter(link => {
         const srcId = typeof link.source === 'object' ? link.source.id : link.source;
@@ -166,7 +175,7 @@
         roles: link.roles || []
       }));
 
-    // 5.3) Construir lista de adyacencia
+    // Construir lista de adyacencia
     const adjacency = new Map();
     componentNodes.forEach(n => adjacency.set(n.id, []));
     componentLinks.forEach(link => {
@@ -176,7 +185,7 @@
       }
     });
 
-    // 5.4) Recorrido BFS a 2 saltos desde movieId
+    // BFS a 2 saltos desde movieId
     const subgraphIds = new Set([movieId]);
     const queue = [{ id: movieId, depth: 0 }];
     while (queue.length > 0) {
@@ -190,13 +199,12 @@
       });
     }
 
-    // 5.5) Nodos y enlaces iniciales del subgrafo
     let subNodes = graphData.nodes.filter(d => subgraphIds.has(d.id));
     let subLinks = componentLinks.filter(link =>
       subgraphIds.has(link.source) && subgraphIds.has(link.target)
     );
 
-    // 5.6) Filtrar películas que no pasen los criterios
+    // Filtrar películas
     const filteredMovieIds = new Set(
       subNodes
         .filter(n => n.type === 'movie')
@@ -204,9 +212,7 @@
         .map(n => n.id)
     );
 
-    // 5.7) Filtrar enlaces válidos: 
-    //   - Si ambos lados son "movie", ambos deben pasar filtros
-    //   - Si uno solo es movie, ese debe pasar filtro
+    // Filtrar enlaces válidos
     const validLinks = subLinks.filter(link => {
       const srcNode = subNodes.find(n => n.id === link.source);
       const tgtNode = subNodes.find(n => n.id === link.target);
@@ -223,7 +229,7 @@
       return false;
     });
 
-    // 5.8) Construir lista final de nodos (solo aquellos conectados por validLinks)
+    // Nodos finales conectados
     const finalIds = new Set();
     validLinks.forEach(link => {
       finalIds.add(link.source);
@@ -234,7 +240,6 @@
     return { nodes: finalNodes, links: validLinks };
   }
 
-  // 6) Verifica si un nodo de tipo "movie" pasa los filtros actuales
   function passesFilters(node) {
     const year = node.year ? +node.year : null;
     if (year !== null && (year < filters.startYear || year > filters.endYear)) {
@@ -254,18 +259,23 @@
 
     return (
       rating >= filters.ratingMin &&
+      rating <= filters.ratingMax &&
       votes >= filters.votesMin &&
       oscarNom >= filters.oscarsNomMin &&
       oscarWin >= filters.oscarsWinMin
     );
   }
 
-  // 7) Función que dibuja el grafo (nodos + enlaces + tooltip)
+  function getEffectiveRadius(d) {
+    const rating = d.averageRating ? +d.averageRating : 5;
+    const baseRadius = globalSizeScale ? globalSizeScale(rating) : 12;
+    return d.type === 'person' ? baseRadius * 1.2 : baseRadius;
+  }
+
   function drawGraph(graph) {
     if (!svgElement || !graph.nodes.length) return;
     cleanupSimulation();
 
-    // Seleccionamos y limpiamos el SVG
     const svg = d3.select(svgElement);
     svg.selectAll('*').remove();
     svg
@@ -273,26 +283,15 @@
       .attr('height', height)
       .attr('viewBox', `0 0 ${width} ${height}`);
 
-    // 7.1) Escala de tamaño basada en “averageRating”
-    const ratings = graph.nodes
-      .filter(d => d.averageRating && !isNaN(+d.averageRating))
-      .map(d => +d.averageRating);
+    // Definir clip path para contener nodos dentro del SVG
+    svg.append('defs')
+       .append('clipPath')
+       .attr('id', 'graph-clip')
+       .append('rect')
+       .attr('width', width)
+       .attr('height', height);
 
-    const sizeScale = d3
-      .scaleLinear()
-      .domain(ratings.length ? d3.extent(ratings) : [0, 10])
-      .range([6, 20]);
-      // Estos valores (6 a 20) representan el “radio base” de cada nodo
-
-    // 7.2) Función para devolver el “radio efectivo” (radio base * factor)
-    function getEffectiveRadius(d) {
-      const rating = d.averageRating ? +d.averageRating : 5;
-      const baseRadius = sizeScale(rating);
-      return baseRadius * 1.2; 
-      // Multiplicamos por 1.2 para cubrir los “picos” de la estrella
-    }
-
-    // 7.3) Configuramos la simulación de fuerzas
+    // Configurar simulación con fuerzas mejoradas
     simulation = d3
       .forceSimulation(graph.nodes)
       .force(
@@ -301,20 +300,19 @@
           .forceLink(graph.links)
           .id(d => d.id)
           .distance(d => {
-            // Distancia mayor si ambos nodos son películas
             const srcNode = graph.nodes.find(n => n.id === (d.source.id || d.source));
             const tgtNode = graph.nodes.find(n => n.id === (d.target.id || d.target));
-            return srcNode?.type === 'movie' && tgtNode?.type === 'movie' ? 150 : 80;
+            return srcNode?.type === 'movie' && tgtNode?.type === 'movie' ? 120 : 80;
           })
+          .strength(0.8)
       )
       .force(
         'charge',
-        d3.forceManyBody().strength(d => (d.type === 'movie' ? -400 : -200))
+        d3.forceManyBody().strength(d => (d.type === 'movie' ? -300 : -150))
       )
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(d => getEffectiveRadius(d) + 5));
+      .force('collision', d3.forceCollide().radius(d => getEffectiveRadius(d) + 8));
 
-    // 7.4) Función para asignar color a cada enlace según roles
     function getRoleColor(roles) {
       if (!Array.isArray(roles) || roles.length === 0) return '#999999';
       const str = roles.join(' ').toLowerCase();
@@ -324,19 +322,19 @@
       return '#999999';
     }
 
-    // 7.5) Dibujar enlaces (<line>)
-    const linkGroup = svg.append('g').attr('class', 'links');
+    // Dibujar enlaces
+    const linkGroup = svg.append('g').attr('class', 'links').attr('clip-path', 'url(#graph-clip)');
     const links = linkGroup
       .selectAll('line')
       .data(graph.links)
       .join('line')
       .attr('class', 'link')
       .attr('stroke', d => getRoleColor(d.roles))
-      .attr('stroke-width', d => Math.sqrt(d.weight || 1) * 2)
+      .attr('stroke-width', d => Math.sqrt(d.weight || 1) * 1.5)
       .attr('stroke-opacity', 0.6);
 
-    // 7.6) Dibujar nodos (<g> → <path> + opcional <text>)
-    const nodeGroup = svg.append('g').attr('class', 'nodes');
+    // Dibujar nodos
+    const nodeGroup = svg.append('g').attr('class', 'nodes').attr('clip-path', 'url(#graph-clip)');
     const nodes = nodeGroup
       .selectAll('g')
       .data(graph.nodes)
@@ -350,18 +348,16 @@
           .on('end', dragEnded)
       );
 
-    // 7.7) Cada nodo es un <path> que puede ser estrella o círculo
+    // Formas de nodos
     nodes
       .append('path')
       .attr('d', d => {
         const radius = getEffectiveRadius(d);
         const symbolType = d.type === 'person' ? d3.symbolStar : d3.symbolCircle;
-        // Para obtener área ≈ π·r², usamos size = r²·π
         return d3.symbol().type(symbolType).size(radius * radius * Math.PI)();
       })
       .attr('fill', d => {
         if (d.type === 'person') return '#ffffff';
-        // Películas ganadoras de Oscar van doradas, el resto verdes
         return d.oscarWins && +d.oscarWins > 0 ? '#ffd700' : '#69b3a2';
       })
       .attr('stroke', d =>
@@ -371,9 +367,9 @@
           ? '#333333'
           : '#666666'
       )
-      .attr('stroke-width', d => (d.id === movieId ? 3 : 1));
+      .attr('stroke-width', d => (d.id === movieId ? 3 : 1.5));
 
-    // 7.8) Agregar texto para el nodo raíz o películas con Oscar
+    // Etiquetas para película principal y ganadoras de Oscar
     nodes
       .filter(
         d => d.id === movieId || (d.type === 'movie' && d.oscarWins && +d.oscarWins > 0)
@@ -384,22 +380,19 @@
         return title.length > 15 ? title.substring(0, 15) + '...' : title;
       })
       .attr('text-anchor', 'middle')
-      .attr('dy', d => getEffectiveRadius(d) + 15)
-      .attr('font-size', '10px')
+      .attr('dy', d => getEffectiveRadius(d) + 18)
+      .attr('font-size', '11px')
       .attr('fill', '#333')
-      .attr('font-weight', d => (d.id === movieId ? 'bold' : 'normal'));
+      .attr('font-weight', d => (d.id === movieId ? 'bold' : 'normal'))
+      .attr('pointer-events', 'none');
 
-    // 7.9) Configurar tooltip
-    
-    // 7.9) Configurar tooltip para películas
+    // Configurar tooltip
     const tooltip = d3.select(tooltipElement);
 
     nodes
       .on('mouseover', (event, d) => {
-        // Solo mostrar tooltip si es nodo de tipo 'movie'
         if (d.type !== 'movie') return;
 
-        // Obtener datos de la película
         const title = d.title || d.primaryTitle || 'Unknown';
         const year = d.year || 'N/A';
         const rating = d.averageRating ? (+d.averageRating).toFixed(1) : 'N/A';
@@ -409,10 +402,9 @@
         const oscarNom = d.oscarNominations != null ? d.oscarNominations : 0;
         const oscarWin = d.oscarWins != null ? d.oscarWins : 0;
 
-        // Construir el contenido HTML del tooltip
         const htmlContent = `
           <div class="title">${title} (${year})</div>
-          <div>Rating: ${rating}</div>
+          <div>Rating: ${rating}/10</div>
           <div>Votes: ${votes}</div>
           <div>Genres: ${genres}</div>
           <div>Oscar Nominations: ${oscarNom}</div>
@@ -422,63 +414,37 @@
         tooltip
           .html(htmlContent)
           .style('display', 'block')
-          .style('left', `${event.pageX + 12}px`)
-          .style('top', `${event.pageY - 12}px`);
+          .style('left', `${event.pageX + 1}px`)
+          .style('top', `${event.pageY - 1}px`);
       })
       .on('mousemove', event => {
-        // Seguir al cursor mientras se mueve
         tooltip
-          .style('left', `${event.pageX + 12}px`)
-          .style('top', `${event.pageY - 12}px`);
+          .style('left', `${event.pageX + 1}px`)
+          .style('top', `${event.pageY - 1}px`);
       })
       .on('mouseout', () => {
-        // Ocultar cuando se salga del nodo
         tooltip.style('display', 'none');
       });
 
-
-    // 7.10) Clamp con margen extra en Y para evitar desbordar por abajo
-    const offsetY = 20; // Reserva 20px adicionales debajo de cada nodo (para texto, márgenes, etc.)
-
+    // Actualizar posiciones con restricciones mejoradas
     simulation.on('tick', () => {
       graph.nodes.forEach(d => {
         const r = getEffectiveRadius(d);
-        // Clamp en X (igual que antes)
-        d.x = Math.max(r, Math.min(width - r, d.x));
-        // Clamp en Y teniendo en cuenta offset inferior
-        d.y = Math.max(r, Math.min(height - (r + offsetY), d.y));
+        const margin = 20;
+        d.x = Math.max(r + margin, Math.min(width - r - margin, d.x));
+        d.y = Math.max(r + margin, Math.min(height - r - margin, d.y));
       });
 
-      // Actualizamos posiciones de enlaces
       links
         .attr('x1', d => d.source.x)
         .attr('y1', d => d.source.y)
         .attr('x2', d => d.target.x)
         .attr('y2', d => d.target.y);
 
-      // Actualizamos posiciones de nodos
       nodes.attr('transform', d => `translate(${d.x},${d.y})`);
     });
   }
 
-  function dragStarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
-    d.fx = d.x;
-    d.fy = d.y;
-  }
-
-  function dragged(event, d) {
-    d.fx = event.x;
-    d.fy = event.y;
-  }
-
-  function dragEnded(event, d) {
-    if (!event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
-  }
-
-  // 8) Función que dibuja el diagrama de barras (histograma de años)
   function drawBarChart(nodes) {
     if (!barChartElement) return;
 
@@ -491,9 +457,11 @@
 
     if (!movies.length) return;
 
-    const margin = { top: 20, right: 20, bottom: 60, left: 60 };
-    const chartWidth = width - margin.left - margin.right;
+    const margin = { top: 20, right: 30, bottom: 60, left: 50 };
+    const chartWidth = 280 - margin.left - margin.right;
     const chartHeight = 200 - margin.top - margin.bottom;
+
+    svg.attr('width', 280).attr('height', 200);
 
     const yearCounts = d3.rollup(movies, v => v.length, d => d.year);
     const yearRange = d3.range(filters.startYear, filters.endYear + 1);
@@ -532,40 +500,56 @@
       .attr('fill', '#69b3a2')
       .attr('rx', 2);
 
-    // Eje X
+    // Ejes con menos ticks para mejor legibilidad
+    const tickCount = Math.min(data.length, 6);
     g.append('g')
       .attr('transform', `translate(0,${chartHeight})`)
-      .call(d3.axisBottom(xScale).tickFormat(d3.format('d')))
+      .call(d3.axisBottom(xScale).tickValues(
+        xScale.domain().filter((d, i) => !(i % Math.ceil(data.length / tickCount)))
+      ))
       .selectAll('text')
       .style('text-anchor', 'end')
       .attr('dx', '-0.8em')
       .attr('dy', '0.15em')
-      .attr('transform', 'rotate(-45)');
+      .attr('transform', 'rotate(-45)')
+      .style('font-size', '10px');
 
-    // Eje Y
-    g.append('g').call(d3.axisLeft(yScale));
+    g.append('g').call(d3.axisLeft(yScale).ticks(5));
 
-    // Labels
+    // Etiquetas
     g.append('text')
       .attr('transform', 'rotate(-90)')
       .attr('y', 0 - margin.left)
       .attr('x', 0 - chartHeight / 2)
       .attr('dy', '1em')
       .style('text-anchor', 'middle')
-      .style('font-size', '12px')
-      .text('Number of Movies');
+      .style('font-size', '11px')
+      .text('Movies');
 
     g.append('text')
-      .attr(
-        'transform',
-        `translate(${chartWidth / 2}, ${chartHeight + margin.bottom - 10})`
-      )
+      .attr('transform', `translate(${chartWidth / 2}, ${chartHeight + margin.bottom - 10})`)
       .style('text-anchor', 'middle')
-      .style('font-size', '12px')
+      .style('font-size', '11px')
       .text('Year');
   }
 
-  // Funciones auxiliares de filtros y volver atrás
+  function dragStarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+
+  function dragEnded(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
   function handleGenreChange(event) {
     filters.selectedGenres = new Set(
       Array.from(event.target.selectedOptions).map(opt => opt.value)
@@ -579,25 +563,24 @@
       startYear: filters.minYear,
       endYear: filters.maxYear,
       selectedGenres: new Set(),
-      ratingMin: filters.ratingMin,
-      votesMin: filters.votesMin,
-      oscarsNomMin: filters.oscarsNomMin,
-      oscarsWinMin: filters.oscarsWinMin
+      ratingMin: 0,
+      ratingMax: 10,
+      votesMin: 0,
+      oscarsNomMin: 0,
+      oscarsWinMin: 0
     };
-    filters = { ...filters };
   }
 
-  function goBack() {
-    dispatch('back');
-  }
+  
 
-  // 9) Reactivo: cuando cambian movieId o filtros, volvemos a dibujar
+
   $: if (
     loadedGraph &&
     movieId &&
     filters.startYear !== undefined &&
     filters.endYear !== undefined &&
     filters.ratingMin !== undefined &&
+    filters.ratingMax !== undefined &&
     filters.votesMin !== undefined &&
     filters.oscarsNomMin !== undefined &&
     filters.oscarsWinMin !== undefined
@@ -626,139 +609,198 @@
       <button on:click={() => window.location.reload()}>Retry</button>
     </div>
   {:else}
-    <!-- Controles de filtros -->
-    <div class="controls-panel">
-      <div class="control-row">
-        <button class="back-btn" on:click={goBack}>
-          ← Back to Search
-        </button>
-        <button class="reset-btn" on:click={resetFilters}>
-          Reset Filters
-        </button>
-      </div>
-
-      <!-- Filtro de rango de años -->
-      <div class="year-filter">
-        <label>Years: {filters.startYear} – {filters.endYear}</label>
-        <div class="range-slider">
-          <input
-            type="range"
-            min={filters.minYear}
-            max={filters.maxYear}
-            bind:value={filters.startYear}
-            class="slider slider-start"
-            on:input={() => {
-              if (filters.startYear > filters.endYear) {
-                filters.startYear = filters.endYear;
-              }
-              filters = { ...filters };
-            }}
-          />
-          <input
-            type="range"
-            min={filters.minYear}
-            max={filters.maxYear}
-            bind:value={filters.endYear}
-            class="slider slider-end"
-            on:input={() => {
-              if (filters.endYear < filters.startYear) {
-                filters.endYear = filters.startYear;
-              }
-              filters = { ...filters };
-            }}
-          />
+    <div class="main-layout">
+      <!-- Panel de controles izquierdo -->
+      <div class="controls-panel">
+        <div class="panel-header">
+          <h3>Filters</h3>
+          <button class="reset-btn" on:click={resetFilters}>Reset</button>
         </div>
-        <small>[{filters.minYear} – {filters.maxYear}]</small>
-      </div>
 
-      <!-- Resto de filtros -->
-      <div class="filters-grid">
-        <div class="filter-group">
-          <label>Min Rating:</label>
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="10"
-            bind:value={filters.ratingMin}
-            on:input={() => {
-              filters = { ...filters };
-            }}
-          />
+        <!-- Filtro de años -->
+        <div class="filter-section">
+          <label class="filter-label">Years: {filters.startYear} – {filters.endYear}</label>
+          <div class="range-container">
+            <input
+              type="range"
+              min={filters.minYear}
+              max={filters.maxYear}
+              bind:value={filters.startYear}
+              class="range-input"
+              on:input={() => {
+                if (filters.startYear > filters.endYear) {
+                  filters.startYear = filters.endYear;
+                }
+                filters = { ...filters };
+              }}
+            />
+            <input
+              type="range"
+              min={filters.minYear}
+              max={filters.maxYear}
+              bind:value={filters.endYear}
+              class="range-input"
+              on:input={() => {
+                if (filters.endYear < filters.startYear) {
+                  filters.endYear = filters.startYear;
+                }
+                filters = { ...filters };
+              }}
+            />
+          </div>
+          <div class="range-labels">
+            <span>{filters.minYear}</span>
+            <span>{filters.maxYear}</span>
+          </div>
         </div>
-        <div class="filter-group">
-          <label>Min Votes:</label>
+
+        <!-- Rating -->
+        <div class="filter-section">
+          <label class="filter-label">Rating: {filters.ratingMin} – {filters.ratingMax}</label>
+          <div class="range-container">
+            <input
+              type="range"
+              min="0"
+              max="10"
+              step="0.1"
+              bind:value={filters.ratingMin}
+              class="range-input"
+              on:input={() => {
+                if (filters.ratingMin > filters.ratingMax) {
+                  filters.ratingMin = filters.ratingMax;
+                }
+                filters = { ...filters };
+              }}
+            />
+            <input
+              type="range"
+              min="0"
+              max="10"
+              step="0.1"
+              bind:value={filters.ratingMax}
+              class="range-input"
+              on:input={() => {
+                if (filters.ratingMax < filters.ratingMin) {
+                  filters.ratingMax = filters.ratingMin;
+                }
+                filters = { ...filters };
+              }}
+            />
+          </div>
+          <div class="range-labels">
+            <span>0</span>
+            <span>10</span>
+          </div>
+        </div>
+
+        <!-- Otros filtros -->
+        <div class="filter-section">
+          <label class="filter-label">Min Votes</label>
           <input
             type="number"
             min="0"
             bind:value={filters.votesMin}
-            on:input={() => {
-              filters = { ...filters };
-            }}
+            class="number-input"
+            on:input={() => { filters = { ...filters }; }}
           />
         </div>
-        <div class="filter-group">
-          <label>Min Oscar Nominations:</label>
+
+        <div class="filter-section">
+          <label class="filter-label">Min Oscar Nominations</label>
           <input
             type="number"
             min="0"
             bind:value={filters.oscarsNomMin}
-            on:input={() => {
-              filters = { ...filters };
-            }}
+            class="number-input"
+            on:input={() => { filters = { ...filters }; }}
           />
         </div>
-        <div class="filter-group">
-          <label>Min Oscar Wins:</label>
+
+        <div class="filter-section">
+          <label class="filter-label">Min Oscar Wins</label>
           <input
             type="number"
             min="0"
             bind:value={filters.oscarsWinMin}
-            on:input={() => {
-              filters = { ...filters };
-            }}
+            class="number-input"
+            on:input={() => { filters = { ...filters }; }}
           />
         </div>
-        <div class="filter-group genre-filter">
-          <label>Genres:</label>
-          <select multiple size="4" on:change={handleGenreChange}>
+
+        <div class="filter-section">
+          <label class="filter-label">Genres</label>
+          <select multiple size="6" on:change={handleGenreChange} class="genre-select">
             {#each allGenres as genre}
               <option value={genre}>{genre}</option>
             {/each}
           </select>
         </div>
-      </div>
-    </div>
 
-    <!-- Sección de grafo -->
-    <div class="network-section">
-      <div class="network-header">
-        <h3>Network Graph</h3>
-        <div class="network-stats">
-          Showing {currentGraph.nodes.length} nodes, {currentGraph.links.length} connections
+        <!-- Gráfico de barras -->
+        <div class="filter-section">
+          <label class="filter-label">Year Distribution</label>
+          <svg bind:this={barChartElement} class="bar-chart-mini"></svg>
         </div>
       </div>
-      <div class="graph-container">
-        <svg bind:this={svgElement} class="network-svg"></svg>
-      
-        <!-- Tooltip para mostrar datos de la película -->
-        <div bind:this={tooltipElement} class="tooltip"></div>
-      </div>
-      
-    </div>
 
-    <!-- Sección de histograma -->
-    <div class="chart-section">
-      <h3>Movies Distribution by Year</h3>
-      <svg bind:this={barChartElement} class="bar-chart" width={width} height="200"></svg>
+      <!-- Contenido principal derecho -->
+      <div class="main-content">
+        <div class="content-header">
+          <div class="header-info">
+            <h2>Network Graph</h2>
+            <div class="stats">
+              {currentGraph.nodes.length} nodes • {currentGraph.links.length} connections
+            </div>
+          </div>
+        </div>
+
+        <div class="graph-container" bind:this={graphContainerElement}>
+          <svg bind:this={svgElement} class="network-svg"></svg>
+          <div bind:this={tooltipElement} class="tooltip"></div>
+        </div>
+
+        <!-- Leyenda -->
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-symbol circle movie"></div>
+            <span>Movie</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-symbol star person"></div>
+            <span>Person</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-symbol circle oscar"></div>
+            <span>Oscar Winner</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-line director"></div>
+            <span>Director</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-line writer"></div>
+            <span>Writer</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-line actor"></div>
+            <span>Actor</span>
+          </div>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
 
+
 <style>
   .film-network-container {
-    padding: 1rem;
-    max-width: 100%;
+    width: 100%;
+    height: 100vh;
+    background: #fafafa;
+    color: #222;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+      Ubuntu, Cantarell, sans-serif;
+    overflow: hidden;
   }
 
   /* Estados de carga y error */
@@ -768,413 +810,452 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 400px;
-    text-align: center;
+    height: 100vh;
+    gap: 20px;
+    background: #fafafa;
+    color: #222;
   }
 
   .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #69b3a2;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-top: 4px solid #555;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin-bottom: 1rem;
   }
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .error-state button {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
+    background: #e0e0e0;
+    border: 1px solid #bbb;
+    color: #222;
+    padding: 10px 20px;
+    border-radius: 6px;
     cursor: pointer;
+    transition: all 0.2s ease;
   }
 
-  /* Panel de controles */
+  .error-state button:hover {
+    background: #d5d5d5;
+  }
+
+  /* Layout principal */
+  .main-layout {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* Panel de controles izquierdo */
   .controls-panel {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid #dee2e6;
+    width: 320px;
+    min-width: 320px;
+    background: #ffffff;
+    border-right: 1px solid #ddd;
+    padding: 20px;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   }
 
-  .control-row {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .back-btn,
-  .reset-btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.2s;
-  }
-
-  .back-btn {
-    background: #6c757d;
-    color: white;
-  }
-
-  .back-btn:hover { background: #5a6268; }
-
-  .reset-btn {
-    background: #17a2b8;
-    color: white;
-  }
-
-  .reset-btn:hover { background: #138496; }
-
-  /* Filtro de años */
-  .year-filter {
-    margin-bottom: 1rem;
-  }
-
-  .year-filter label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-  }
-
-  .range-slider {
-    position: relative;
-    height: 30px;
-    width: 100%;
-    max-width: 400px;
-  }
-
-  .slider {
-    position: absolute;
-    width: 100%;
-    height: 6px;
-    background: transparent;
-    outline: none;
-    -webkit-appearance: none;
-    pointer-events: all;
-  }
-
-  .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #69b3a2;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  }
-
-  .slider::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #69b3a2;
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  }
-
-  .slider::-webkit-slider-runnable-track {
-    height: 6px;
-    background: #ddd;
-    border-radius: 3px;
-  }
-
-  .slider::-moz-range-track {
-    height: 6px;
-    background: #ddd;
-    border-radius: 3px;
-    border: none;
-  }
-
-  .slider-start::-webkit-slider-thumb { z-index: 2; }
-  .slider-end::-webkit-slider-thumb   { z-index: 1; }
-
-  /* Grid de filtros */
-  .filters-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    align-items: start;
-  }
-
-  .filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .filter-group label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #495057;
-  }
-
-  .filter-group input {
-    padding: 0.375rem 0.5rem;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 0.9rem;
-  }
-
-  .filter-group input:focus {
-    outline: none;
-    border-color: #69b3a2;
-    box-shadow: 0 0 0 2px rgba(105,179,162,0.25);
-  }
-
-  .genre-filter select {
-    padding: 0.375rem 0.5rem;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    min-height: 80px;
-  }
-
-  .genre-filter select:focus {
-    outline: none;
-    border-color: #69b3a2;
-    box-shadow: 0 0 0 2px rgba(105,179,162,0.25);
-  }
-
-  /* Sección del grafo */
-  .network-section {
-    background: white;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid #dee2e6;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .network-header {
+  .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #dee2e6;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #eee;
   }
 
-  .network-header h3 {
+  .panel-header h3 {
     margin: 0;
-    color: #495057;
-    font-size: 1.25rem;
+    font-size: 20px;
+    font-weight: 600;
+    color: #222;
   }
 
-  .network-stats {
-    font-size: 0.9rem;
-    color: #6c757d;
-    background: #f8f9fa;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
+  .reset-btn {
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    color: #222;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
 
-  .graph-container {
-    position: relative;
-    overflow: hidden; /* ya tenías esto para recortar los nodos */
+  .reset-btn:hover {
+    background: #e0e0e0;
+  }
+
+  /* Secciones de filtros */
+  .filter-section {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+  }
+
+  .filter-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: #222;
+  }
+
+  /* Controles de rango */
+  .range-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .range-input {
+    -webkit-appearance: none;
+    appearance: none;
     width: 100%;
-    /* resto de estilos… */
+    height: 6px;
+    background: #ddd;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
   }
 
+  .range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #555;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  .range-input::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+  }
+
+  .range-input::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #555;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #555;
+  }
+
+  /* Inputs numéricos */
+  .number-input {
+    width: 100%;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    color: #222;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .number-input:focus {
+    border-color: #888;
+    box-shadow: 0 0 0 2px rgba(136, 136, 136, 0.2);
+  }
+
+  /* Select de géneros */
+  .genre-select {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    color: #222;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .genre-select option {
+    background: #fff;
+    color: #222;
+    padding: 6px;
+  }
+
+  .genre-select option:checked {
+    background: #eef2ff;
+    color: #222;
+  }
+
+  /* Gráfico de barras mini */
+  .bar-chart-mini {
+    width: 100%;
+    height: 200px;
+    background: #fff;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+  }
+
+  /* Contenido principal */
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: #f5f5f5;
+  }
+
+  .content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .header-info h2 {
+    margin: 0 0 4px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #222;
+  }
+
+  .stats {
+    font-size: 14px;
+    color: #555;
+    font-weight: 400;
+  }
+
+  .back-btn {
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    color: #222;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .back-btn:hover {
+    background: #e0e0e0;
+  }
+
+  /* Contenedor del grafo */
+  .graph-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #ffffff;
+    margin: 0;
+  }
 
   .network-svg {
-    display: block;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: transparent;
+    cursor: grab;
   }
 
-  /* Sección del histograma */
-  .chart-section {
-    background: white;
-    border-radius: 8px;
-    padding: 1rem;
-    border: 1px solid #dee2e6;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  .chart-section h3 {
-    margin: 0 0 1rem 0;
-    color: #495057;
-    font-size: 1.25rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #dee2e6;
-  }
-
-  .bar-chart {
-    display: block;
-    background: #fafafa;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
+  .network-svg:active {
+    cursor: grabbing;
   }
 
   /* Tooltip */
-  /* Estilos básicos del tooltip */
   .tooltip {
     position: absolute;
-    pointer-events: none;      /* para que no intercepte el cursor */
-    display: none;             /* oculto por defecto */
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 0.5rem 0.75rem;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    line-height: 1.2;
-    max-width: 220px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.95);
+    color: #222;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    pointer-events: none;
+    display: none;
     z-index: 1000;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-width: 250px;
   }
 
-  /* Título dentro del tooltip */
   .tooltip .title {
-    font-weight: bold;
-    margin-bottom: 0.25rem;
-    font-size: 0.9rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    padding-bottom: 0.2rem;
-    margin-bottom: 0.4rem;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #222;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 4px;
   }
 
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .film-network-container {
-      padding: 0.5rem;
-    }
-
-    .controls-panel {
-      padding: 0.75rem;
-    }
-
-    .filters-grid {
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
-    }
-
-    .control-row {
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .network-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-
-    .network-stats {
-      align-self: stretch;
-      text-align: center;
-    }
-
-    .range-slider {
-      max-width: 100%;
-    }
+  /* Leyenda */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    padding: 16px 24px;
+    background: #ffffff;
+    border-top: 1px solid #ddd;
+    flex-wrap: wrap;
   }
 
-  @media (max-width: 480px) {
-    .film-network-container {
-      padding: 0.25rem;
-    }
-
-    .network-section,
-    .chart-section,
-    .controls-panel {
-      border-radius: 4px;
-      padding: 0.5rem;
-    }
-
-    .network-header h3,
-    .chart-section h3 {
-      font-size: 1.1rem;
-    }
-
-    .tooltip {
-      max-width: 200px;
-      font-size: 0.75rem;
-    }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #555;
   }
 
-  /* Efectos hover en nodos y enlaces */
-  :global(.node) {
+  .legend-symbol {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid #666;
+  }
+
+  .legend-symbol.circle.movie {
+    background: #69b3a2;
+  }
+
+  .legend-symbol.circle.oscar {
+    background: #ffd700;
+  }
+
+  .legend-symbol.star.person {
+    background: #ffffff;
+    clip-path: polygon(
+      50% 0%,
+      61% 35%,
+      98% 35%,
+      68% 57%,
+      79% 91%,
+      50% 70%,
+      21% 91%,
+      32% 57%,
+      2% 35%,
+      39% 35%
+    );
+    border-radius: 0;
+    border: 1.5px solid #333;
+  }
+
+  .legend-line {
+    width: 20px;
+    height: 2px;
+    border-radius: 1px;
+  }
+
+  .legend-line.director {
+    background: #1f77b4;
+  }
+
+  .legend-line.writer {
+    background: #2ca02c;
+  }
+
+  .legend-line.actor {
+    background: #ff7f0e;
+  }
+
+  /* Estilos para nodos y enlaces en el SVG */
+  .network-svg .node {
     cursor: pointer;
-    transition: opacity 0.2s ease;
+    transition: all 0.2s ease;
   }
 
-  :global(.node:hover) {
-    opacity: 0.8;
+  .network-svg .node:hover {
+    filter: brightness(1.2) drop-shadow(0 0 6px rgba(0, 0, 0, 0.2));
   }
 
-  :global(.links line) {
+  .network-svg .link {
     transition: stroke-opacity 0.2s ease;
   }
 
-  :global(.links line:hover) {
+  .network-svg .link:hover {
     stroke-opacity: 1 !important;
   }
 
-  /* Animación fadeIn para estados de carga/error */
-  .loading-state {
-    animation: fadeIn 0.3s ease-in;
-  }
-
-  .error-state {
-    animation: fadeIn 0.3s ease-in;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Focus outline accesible */
-  .back-btn:focus,
-  .reset-btn:focus {
-    outline: 2px solid #69b3a2;
-    outline-offset: 2px;
-  }
-
-  .slider:focus {
-    outline: 2px solid #69b3a2;
-    outline-offset: 2px;
-  }
-
-  /* Scrollbar personalizado para <select multiple> de géneros */
-  .genre-filter select::-webkit-scrollbar {
+  /* Scrollbar personalizado para el panel de controles */
+  .controls-panel::-webkit-scrollbar {
     width: 6px;
   }
 
-  .genre-filter select::-webkit-scrollbar-track {
-    background: #f1f1f1;
+  .controls-panel::-webkit-scrollbar-track {
+    background: #f0f0f0;
     border-radius: 3px;
   }
 
-  .genre-filter select::-webkit-scrollbar-thumb {
-    background: #69b3a2;
+  .controls-panel::-webkit-scrollbar-thumb {
+    background: #ccc;
     border-radius: 3px;
   }
 
-  .genre-filter select::-webkit-scrollbar-thumb:hover {
-    background: #5a9d8a;
+  .controls-panel::-webkit-scrollbar-thumb:hover {
+    background: #bbb;
+  }
+
+  /* Responsividad */
+  @media (max-width: 1024px) {
+    .main-layout {
+      flex-direction: column;
+    }
+
+    .controls-panel {
+      width: 100%;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .legend {
+      gap: 16px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .controls-panel {
+      padding: 16px;
+    }
+
+    .content-header {
+      padding: 16px;
+    }
+
+    .content-header h2 {
+      font-size: 20px;
+    }
+
+    .legend {
+      padding: 12px 16px;
+      gap: 12px;
+    }
+
+    .legend-item {
+      font-size: 11px;
+    }
   }
 </style>
