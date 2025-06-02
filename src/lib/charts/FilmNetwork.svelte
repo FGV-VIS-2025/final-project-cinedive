@@ -1048,24 +1048,6 @@
     font-weight: 400;
   }
 
-  .back-btn {
-    background: #f5f5f5;
-    border: 1px solid #ccc;
-    color: #222;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .back-btn:hover {
-    background: #e0e0e0;
-  }
-
   /* Contenedor del grafo */
   .graph-container {
     flex: 1;
@@ -1149,16 +1131,7 @@
   .legend-symbol.star.person {
     background: #ffffff;
     clip-path: polygon(
-      50% 0%,
-      61% 35%,
-      98% 35%,
-      68% 57%,
-      79% 91%,
-      50% 70%,
-      21% 91%,
-      32% 57%,
-      2% 35%,
-      39% 35%
+      50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%
     );
     border-radius: 0;
     border: 1.5px solid #333;
