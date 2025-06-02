@@ -37,7 +37,7 @@
   let currentGraph = { nodes: [], links: [] };
   let resizeObserver = null;
 
-  // Carga inicial
+  // 1) Al montar, cargamos datos y configuramos el observer de resize
   onMount(async () => {
     await initializeData();
     setupResizeObserver();
@@ -50,12 +50,13 @@
     }
   });
 
+  // 2) Función para cargar grafo y metadatos de películas
   async function initializeData() {
     try {
       isLoading = true;
       const [graph, movies] = await Promise.all([loadGraph(), loadMoviesFullData()]);
 
-      // Combinar metadatos
+      // Unimos la información de movies con cada nodo del grafo
       const movieMap = new Map(movies.map(m => [m.tconst, m]));
       graph.nodes = graph.nodes.map(node => {
         const extra = movieMap.get(node.id);
@@ -63,7 +64,7 @@
       });
       graphData = graph;
 
-      // Rango de años
+      // Determinamos rangos de años basados en nodos de tipo "movie"
       const movieYears = graph.nodes
         .filter(n => n.type === 'movie' && n.year && !isNaN(+n.year))
         .map(n => +n.year);
@@ -72,7 +73,7 @@
         filters = { ...filters, minYear: minY, maxYear: maxY, startYear: minY, endYear: maxY };
       }
 
-      // Rango rating/votos/oscars
+      // Determinamos rango de rating, votos y Oscars
       const movieNodes = graph.nodes.filter(n => n.type === 'movie');
       if (movieNodes.length) {
         const ratings = movieNodes.map(n => +n.averageRating || 0);
@@ -89,7 +90,7 @@
         };
       }
 
-      // Géneros únicos
+      // Extraemos lista única de géneros
       const genresSet = new Set();
       movieNodes.forEach(n => {
         if (n.genres && Array.isArray(n.genres)) {
@@ -100,7 +101,8 @@
 
       loadedGraph = true;
       isLoading = false;
-      // Si ya hay movieId, dispara la visualización inicial
+
+      // Si ya había un movieId seleccionado, dibujamos de inmediato
       if (movieId) {
         updateVisualization();
       }
@@ -111,11 +113,13 @@
     }
   }
 
+  // 3) Observador de cambios de tamaño del contenedor principal
   function setupResizeObserver() {
     if (!containerElement) return;
     resizeObserver = new ResizeObserver(entries => {
       for (let entry of entries) {
         const { width: newWidth } = entry.contentRect;
+        // Ajustamos width; dejamos al menos 400 px
         if (newWidth > 0 && newWidth !== width) {
           width = Math.max(400, newWidth - 40);
           if (loadedGraph && movieId) {
@@ -127,6 +131,7 @@
     resizeObserver.observe(containerElement);
   }
 
+  // 4) Detener y limpiar simulación D3
   function cleanupSimulation() {
     if (simulation) {
       simulation.stop();
@@ -134,6 +139,7 @@
     }
   }
 
+  // 5) Construye el subgrafo filtrado a partir de movieId y los filtros
   function buildFilteredSubgraph() {
     const rootNode = graphData.nodes.find(d => d.id === movieId);
     if (!rootNode) {
@@ -141,11 +147,12 @@
       return { nodes: [], links: [] };
     }
 
-    // Filtrar componente completo
+    // 5.1) Filtrar componente completo (todos los nodos con mismo componente)
     const componentId = rootNode.component;
     const componentNodes = graphData.nodes.filter(d => d.component === componentId);
     const componentIds = new Set(componentNodes.map(d => d.id));
 
+    // 5.2) Filtrar enlaces que conecten dentro de ese componente
     const componentLinks = graphData.links
       .filter(link => {
         const srcId = typeof link.source === 'object' ? link.source.id : link.source;
@@ -159,7 +166,7 @@
         roles: link.roles || []
       }));
 
-    // Construir adyacencia
+    // 5.3) Construir lista de adyacencia
     const adjacency = new Map();
     componentNodes.forEach(n => adjacency.set(n.id, []));
     componentLinks.forEach(link => {
@@ -169,7 +176,7 @@
       }
     });
 
-    // BFS a 2 saltos
+    // 5.4) Recorrido BFS a 2 saltos desde movieId
     const subgraphIds = new Set([movieId]);
     const queue = [{ id: movieId, depth: 0 }];
     while (queue.length > 0) {
@@ -183,13 +190,13 @@
       });
     }
 
-    // Subgrafo inicial
+    // 5.5) Nodos y enlaces iniciales del subgrafo
     let subNodes = graphData.nodes.filter(d => subgraphIds.has(d.id));
     let subLinks = componentLinks.filter(link =>
       subgraphIds.has(link.source) && subgraphIds.has(link.target)
     );
 
-    // Filtrar películas que pasan los criterios
+    // 5.6) Filtrar películas que no pasen los criterios
     const filteredMovieIds = new Set(
       subNodes
         .filter(n => n.type === 'movie')
@@ -197,7 +204,9 @@
         .map(n => n.id)
     );
 
-    // Filtrar enlaces según películas válidas y conexiones persona–película
+    // 5.7) Filtrar enlaces válidos: 
+    //   - Si ambos lados son "movie", ambos deben pasar filtros
+    //   - Si uno solo es movie, ese debe pasar filtro
     const validLinks = subLinks.filter(link => {
       const srcNode = subNodes.find(n => n.id === link.source);
       const tgtNode = subNodes.find(n => n.id === link.target);
@@ -214,7 +223,7 @@
       return false;
     });
 
-    // Nodos finales
+    // 5.8) Construir lista final de nodos (solo aquellos conectados por validLinks)
     const finalIds = new Set();
     validLinks.forEach(link => {
       finalIds.add(link.source);
@@ -225,6 +234,7 @@
     return { nodes: finalNodes, links: validLinks };
   }
 
+  // 6) Verifica si un nodo de tipo "movie" pasa los filtros actuales
   function passesFilters(node) {
     const year = node.year ? +node.year : null;
     if (year !== null && (year < filters.startYear || year > filters.endYear)) {
@@ -250,162 +260,203 @@
     );
   }
 
-  // Dibuja el grafo
+  // 7) Función que dibuja el grafo (nodos + enlaces + tooltip)
   function drawGraph(graph) {
     if (!svgElement || !graph.nodes.length) return;
     cleanupSimulation();
 
+    // Seleccionamos y limpiamos el SVG
     const svg = d3.select(svgElement);
     svg.selectAll('*').remove();
-    svg.attr('width', width)
-       .attr('height', height)
-       .attr('viewBox', `0 0 ${width} ${height}`);
+    svg
+      .attr('width', width)
+      .attr('height', height)
+      .attr('viewBox', `0 0 ${width} ${height}`);
 
+    // 7.1) Escala de tamaño basada en “averageRating”
     const ratings = graph.nodes
       .filter(d => d.averageRating && !isNaN(+d.averageRating))
       .map(d => +d.averageRating);
 
-    const sizeScale = d3.scaleLinear()
+    const sizeScale = d3
+      .scaleLinear()
       .domain(ratings.length ? d3.extent(ratings) : [0, 10])
       .range([6, 20]);
+      // Estos valores (6 a 20) representan el “radio base” de cada nodo
 
-    const oscarColor = d3.scaleOrdinal()
-      .domain([false, true])
-      .range(['#69b3a2', '#ffd700']);
+    // 7.2) Función para devolver el “radio efectivo” (radio base * factor)
+    function getEffectiveRadius(d) {
+      const rating = d.averageRating ? +d.averageRating : 5;
+      const baseRadius = sizeScale(rating);
+      return baseRadius * 1.2; 
+      // Multiplicamos por 1.2 para cubrir los “picos” de la estrella
+    }
 
-    simulation = d3.forceSimulation(graph.nodes)
-      .force('link', d3.forceLink(graph.links)
-        .id(d => d.id)
-        .distance(d => {
-          const srcNode = graph.nodes.find(n => n.id === d.source.id || n.id === d.source);
-          const tgtNode = graph.nodes.find(n => n.id === d.target.id || n.id === d.target);
-          return (srcNode?.type === 'movie' && tgtNode?.type === 'movie') ? 150 : 80;
-        }))
-      .force('charge', d3.forceManyBody().strength(d =>
-        d.type === 'movie' ? -400 : -200
-      ))
+    // 7.3) Configuramos la simulación de fuerzas
+    simulation = d3
+      .forceSimulation(graph.nodes)
+      .force(
+        'link',
+        d3
+          .forceLink(graph.links)
+          .id(d => d.id)
+          .distance(d => {
+            // Distancia mayor si ambos nodos son películas
+            const srcNode = graph.nodes.find(n => n.id === (d.source.id || d.source));
+            const tgtNode = graph.nodes.find(n => n.id === (d.target.id || d.target));
+            return srcNode?.type === 'movie' && tgtNode?.type === 'movie' ? 150 : 80;
+          })
+      )
+      .force(
+        'charge',
+        d3.forceManyBody().strength(d => (d.type === 'movie' ? -400 : -200))
+      )
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(d => {
-        const rating = d.averageRating ? +d.averageRating : 5;
-        return sizeScale(rating) + 5;
-      }));
+      .force('collision', d3.forceCollide().radius(d => getEffectiveRadius(d) + 5));
 
-    const getRoleColor = roles => {
+    // 7.4) Función para asignar color a cada enlace según roles
+    function getRoleColor(roles) {
       if (!Array.isArray(roles) || roles.length === 0) return '#999999';
       const str = roles.join(' ').toLowerCase();
       if (str.includes('director')) return '#1f77b4';
       if (str.includes('writer')) return '#2ca02c';
       if (str.includes('actor') || str.includes('actress')) return '#ff7f0e';
       return '#999999';
-    };
+    }
 
-    // Dibujar enlaces
+    // 7.5) Dibujar enlaces (<line>)
     const linkGroup = svg.append('g').attr('class', 'links');
-    const links = linkGroup.selectAll('line')
+    const links = linkGroup
+      .selectAll('line')
       .data(graph.links)
       .join('line')
+      .attr('class', 'link')
       .attr('stroke', d => getRoleColor(d.roles))
       .attr('stroke-width', d => Math.sqrt(d.weight || 1) * 2)
       .attr('stroke-opacity', 0.6);
 
-    // Dibujar nodos
+    // 7.6) Dibujar nodos (<g> → <path> + opcional <text>)
     const nodeGroup = svg.append('g').attr('class', 'nodes');
-    const nodes = nodeGroup.selectAll('g')
+    const nodes = nodeGroup
+      .selectAll('g')
       .data(graph.nodes)
       .join('g')
       .attr('class', 'node')
-      .call(d3.drag()
-        .on('start', dragStarted)
-        .on('drag', dragged)
-        .on('end', dragEnded));
+      .call(
+        d3
+          .drag()
+          .on('start', dragStarted)
+          .on('drag', dragged)
+          .on('end', dragEnded)
+      );
 
-    nodes.append('path')
+    // 7.7) Cada nodo es un <path> que puede ser estrella o círculo
+    nodes
+      .append('path')
       .attr('d', d => {
-        const rating = d.averageRating ? +d.averageRating : 5;
-        const size = sizeScale(rating);
+        const radius = getEffectiveRadius(d);
         const symbolType = d.type === 'person' ? d3.symbolStar : d3.symbolCircle;
-        return d3.symbol().type(symbolType).size(size * size * Math.PI)();
+        // Para obtener área ≈ π·r², usamos size = r²·π
+        return d3.symbol().type(symbolType).size(radius * radius * Math.PI)();
       })
       .attr('fill', d => {
         if (d.type === 'person') return '#ffffff';
-        return oscarColor(d.oscarWins && +d.oscarWins > 0);
+        // Películas ganadoras de Oscar van doradas, el resto verdes
+        return d.oscarWins && +d.oscarWins > 0 ? '#ffd700' : '#69b3a2';
       })
-      .attr('stroke', d => d.id === movieId ? '#ff0000' : d.type === 'person' ? '#333333' : '#666666')
-      .attr('stroke-width', d => d.id === movieId ? 3 : 1);
+      .attr('stroke', d =>
+        d.id === movieId
+          ? '#ff0000'
+          : d.type === 'person'
+          ? '#333333'
+          : '#666666'
+      )
+      .attr('stroke-width', d => (d.id === movieId ? 3 : 1));
 
-    nodes.filter(d => d.id === movieId || (d.type === 'movie' && d.oscarWins && +d.oscarWins > 0))
+    // 7.8) Agregar texto para el nodo raíz o películas con Oscar
+    nodes
+      .filter(
+        d => d.id === movieId || (d.type === 'movie' && d.oscarWins && +d.oscarWins > 0)
+      )
       .append('text')
       .text(d => {
         const title = d.title || d.primaryTitle || d.id;
         return title.length > 15 ? title.substring(0, 15) + '...' : title;
       })
       .attr('text-anchor', 'middle')
-      .attr('dy', d => {
-        const rating = d.averageRating ? +d.averageRating : 5;
-        return sizeScale(rating) + 15;
-      })
+      .attr('dy', d => getEffectiveRadius(d) + 15)
       .attr('font-size', '10px')
       .attr('fill', '#333')
-      .attr('font-weight', d => d.id === movieId ? 'bold' : 'normal');
+      .attr('font-weight', d => (d.id === movieId ? 'bold' : 'normal'));
 
+    // 7.9) Configurar tooltip
+    
+    // 7.9) Configurar tooltip para películas
     const tooltip = d3.select(tooltipElement);
+
     nodes
       .on('mouseover', (event, d) => {
-        let content;
-        if (d.type === 'person') {
-          content = `
-            <div class="tooltip-title">Person</div>
-            <div>ID: ${d.id}</div>
-          `;
-        } else {
-          const title = d.title || d.primaryTitle || 'Unknown Title';
-          const year = d.year || 'N/A';
-          const rating = d.averageRating ? (+d.averageRating).toFixed(1) : 'N/A';
-          const votes = d.numVotes ? (+d.numVotes).toLocaleString() : 'N/A';
-          const genres = d.genres && Array.isArray(d.genres) ? d.genres.join(', ') : 'N/A';
-          const oscarNom = d.oscarNominations || 0;
-          const oscarWin = d.oscarWins || 0;
+        // Solo mostrar tooltip si es nodo de tipo 'movie'
+        if (d.type !== 'movie') return;
 
-          content = `
-            <div class="tooltip-title">${title}</div>
-            <div>Year: ${year}</div>
-            <div>Rating: ${rating}</div>
-            <div>Votes: ${votes}</div>
-            <div>Genres: ${genres}</div>
-            <div>Oscar Nominations: ${oscarNom}</div>
-            <div>Oscar Wins: ${oscarWin}</div>
-          `;
-        }
+        // Obtener datos de la película
+        const title = d.title || d.primaryTitle || 'Unknown';
+        const year = d.year || 'N/A';
+        const rating = d.averageRating ? (+d.averageRating).toFixed(1) : 'N/A';
+        const votes = d.numVotes ? (+d.numVotes).toLocaleString() : 'N/A';
+        const genres =
+          d.genres && Array.isArray(d.genres) ? d.genres.join(', ') : 'N/A';
+        const oscarNom = d.oscarNominations != null ? d.oscarNominations : 0;
+        const oscarWin = d.oscarWins != null ? d.oscarWins : 0;
+
+        // Construir el contenido HTML del tooltip
+        const htmlContent = `
+          <div class="title">${title} (${year})</div>
+          <div>Rating: ${rating}</div>
+          <div>Votes: ${votes}</div>
+          <div>Genres: ${genres}</div>
+          <div>Oscar Nominations: ${oscarNom}</div>
+          <div>Oscar Wins: ${oscarWin}</div>
+        `;
 
         tooltip
+          .html(htmlContent)
           .style('display', 'block')
-          .html(content)
-          .style('left', `${event.pageX + 10}px`)
-          .style('top', `${event.pageY - 10}px`);
+          .style('left', `${event.pageX + 12}px`)
+          .style('top', `${event.pageY - 12}px`);
+      })
+      .on('mousemove', event => {
+        // Seguir al cursor mientras se mueve
+        tooltip
+          .style('left', `${event.pageX + 12}px`)
+          .style('top', `${event.pageY - 12}px`);
       })
       .on('mouseout', () => {
+        // Ocultar cuando se salga del nodo
         tooltip.style('display', 'none');
-      })
-      .on('click', (event, d) => {
-        if (d.type === 'movie' && d.id !== movieId) {
-          dispatch('movieSelect', { movieId: d.id });
-        }
       });
+
+
+    // 7.10) Clamp con margen extra en Y para evitar desbordar por abajo
+    const offsetY = 20; // Reserva 20px adicionales debajo de cada nodo (para texto, márgenes, etc.)
 
     simulation.on('tick', () => {
       graph.nodes.forEach(d => {
-        const rating = d.averageRating ? +d.averageRating : 5;
-        const radius = sizeScale(rating);
-        d.x = Math.max(radius, Math.min(width - radius, d.x));
-        d.y = Math.max(radius, Math.min(height - radius, d.y));
+        const r = getEffectiveRadius(d);
+        // Clamp en X (igual que antes)
+        d.x = Math.max(r, Math.min(width - r, d.x));
+        // Clamp en Y teniendo en cuenta offset inferior
+        d.y = Math.max(r, Math.min(height - (r + offsetY), d.y));
       });
 
+      // Actualizamos posiciones de enlaces
       links
         .attr('x1', d => d.source.x)
         .attr('y1', d => d.source.y)
         .attr('x2', d => d.target.x)
         .attr('y2', d => d.target.y);
 
+      // Actualizamos posiciones de nodos
       nodes.attr('transform', d => `translate(${d.x},${d.y})`);
     });
   }
@@ -427,7 +478,7 @@
     d.fy = null;
   }
 
-  // Dibuja bar chart
+  // 8) Función que dibuja el diagrama de barras (histograma de años)
   function drawBarChart(nodes) {
     if (!barChartElement) return;
 
@@ -446,23 +497,28 @@
 
     const yearCounts = d3.rollup(movies, v => v.length, d => d.year);
     const yearRange = d3.range(filters.startYear, filters.endYear + 1);
-    const data = yearRange.map(year => ({
-      year,
-      count: yearCounts.get(year) || 0
-    })).filter(d => d.count > 0);
+    const data = yearRange
+      .map(year => ({
+        year,
+        count: yearCounts.get(year) || 0
+      }))
+      .filter(d => d.count > 0);
 
     if (!data.length) return;
 
-    const xScale = d3.scaleBand()
+    const xScale = d3
+      .scaleBand()
       .domain(data.map(d => d.year))
       .range([0, chartWidth])
       .padding(0.1);
 
-    const yScale = d3.scaleLinear()
+    const yScale = d3
+      .scaleLinear()
       .domain([0, d3.max(data, d => d.count)])
       .range([chartHeight, 0]);
 
-    const g = svg.append('g')
+    const g = svg
+      .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
     // Barras
@@ -487,31 +543,33 @@
       .attr('transform', 'rotate(-45)');
 
     // Eje Y
-    g.append('g')
-      .call(d3.axisLeft(yScale));
+    g.append('g').call(d3.axisLeft(yScale));
 
     // Labels
     g.append('text')
       .attr('transform', 'rotate(-90)')
       .attr('y', 0 - margin.left)
-      .attr('x', 0 - (chartHeight / 2))
+      .attr('x', 0 - chartHeight / 2)
       .attr('dy', '1em')
       .style('text-anchor', 'middle')
       .style('font-size', '12px')
       .text('Number of Movies');
 
     g.append('text')
-      .attr('transform', `translate(${chartWidth / 2}, ${chartHeight + margin.bottom - 10})`)
+      .attr(
+        'transform',
+        `translate(${chartWidth / 2}, ${chartHeight + margin.bottom - 10})`
+      )
       .style('text-anchor', 'middle')
       .style('font-size', '12px')
       .text('Year');
   }
 
+  // Funciones auxiliares de filtros y volver atrás
   function handleGenreChange(event) {
     filters.selectedGenres = new Set(
       Array.from(event.target.selectedOptions).map(opt => opt.value)
     );
-    // Reasignar para disparar reactividad
     filters = { ...filters };
   }
 
@@ -521,19 +579,19 @@
       startYear: filters.minYear,
       endYear: filters.maxYear,
       selectedGenres: new Set(),
-      ratingMin: filters.minYear === filters.minYear ? filters.ratingMin : 0,  // conservamos rango
+      ratingMin: filters.ratingMin,
       votesMin: filters.votesMin,
       oscarsNomMin: filters.oscarsNomMin,
       oscarsWinMin: filters.oscarsWinMin
     };
-    // Como reasignamos todo el objeto, la reactividad se disparará automáticamente
+    filters = { ...filters };
   }
 
   function goBack() {
     dispatch('back');
   }
 
-  // Único bloque reactivo que escucha a movieId, loadedGraph y cada propiedad relevante de filters
+  // 9) Reactivo: cuando cambian movieId o filtros, volvemos a dibujar
   $: if (
     loadedGraph &&
     movieId &&
@@ -568,7 +626,7 @@
       <button on:click={() => window.location.reload()}>Retry</button>
     </div>
   {:else}
-    <!-- Controls -->
+    <!-- Controles de filtros -->
     <div class="controls-panel">
       <div class="control-row">
         <button class="back-btn" on:click={goBack}>
@@ -579,7 +637,7 @@
         </button>
       </div>
 
-      <!-- Year Range Slider -->
+      <!-- Filtro de rango de años -->
       <div class="year-filter">
         <label>Years: {filters.startYear} – {filters.endYear}</label>
         <div class="range-slider">
@@ -593,7 +651,7 @@
               if (filters.startYear > filters.endYear) {
                 filters.startYear = filters.endYear;
               }
-              filters = { ...filters }; // reasignar para disparar reactividad
+              filters = { ...filters };
             }}
           />
           <input
@@ -606,14 +664,14 @@
               if (filters.endYear < filters.startYear) {
                 filters.endYear = filters.startYear;
               }
-              filters = { ...filters }; // reasignar para disparar reactividad
+              filters = { ...filters };
             }}
           />
         </div>
         <small>[{filters.minYear} – {filters.maxYear}]</small>
       </div>
 
-      <!-- Other Filters -->
+      <!-- Resto de filtros -->
       <div class="filters-grid">
         <div class="filter-group">
           <label>Min Rating:</label>
@@ -623,7 +681,9 @@
             min="0"
             max="10"
             bind:value={filters.ratingMin}
-            on:input={() => { filters = { ...filters }; }}
+            on:input={() => {
+              filters = { ...filters };
+            }}
           />
         </div>
         <div class="filter-group">
@@ -632,7 +692,9 @@
             type="number"
             min="0"
             bind:value={filters.votesMin}
-            on:input={() => { filters = { ...filters }; }}
+            on:input={() => {
+              filters = { ...filters };
+            }}
           />
         </div>
         <div class="filter-group">
@@ -641,7 +703,9 @@
             type="number"
             min="0"
             bind:value={filters.oscarsNomMin}
-            on:input={() => { filters = { ...filters }; }}
+            on:input={() => {
+              filters = { ...filters };
+            }}
           />
         </div>
         <div class="filter-group">
@@ -650,7 +714,9 @@
             type="number"
             min="0"
             bind:value={filters.oscarsWinMin}
-            on:input={() => { filters = { ...filters }; }}
+            on:input={() => {
+              filters = { ...filters };
+            }}
           />
         </div>
         <div class="filter-group genre-filter">
@@ -664,7 +730,7 @@
       </div>
     </div>
 
-    <!-- Network Visualization -->
+    <!-- Sección de grafo -->
     <div class="network-section">
       <div class="network-header">
         <h3>Network Graph</h3>
@@ -674,11 +740,14 @@
       </div>
       <div class="graph-container">
         <svg bind:this={svgElement} class="network-svg"></svg>
+      
+        <!-- Tooltip para mostrar datos de la película -->
         <div bind:this={tooltipElement} class="tooltip"></div>
       </div>
+      
     </div>
 
-    <!-- Bar Chart -->
+    <!-- Sección de histograma -->
     <div class="chart-section">
       <h3>Movies Distribution by Year</h3>
       <svg bind:this={barChartElement} class="bar-chart" width={width} height="200"></svg>
@@ -692,8 +761,9 @@
     max-width: 100%;
   }
 
-  /* Loading and Error States */
-  .loading-state, .error-state {
+  /* Estados de carga y error */
+  .loading-state,
+  .error-state {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -727,7 +797,7 @@
     cursor: pointer;
   }
 
-  /* Controls */
+  /* Panel de controles */
   .controls-panel {
     background: #f8f9fa;
     border-radius: 8px;
@@ -743,7 +813,8 @@
     flex-wrap: wrap;
   }
 
-  .back-btn, .reset-btn {
+  .back-btn,
+  .reset-btn {
     padding: 0.5rem 1rem;
     border: none;
     border-radius: 4px;
@@ -757,20 +828,16 @@
     color: white;
   }
 
-  .back-btn:hover {
-    background: #5a6268;
-  }
+  .back-btn:hover { background: #5a6268; }
 
   .reset-btn {
     background: #17a2b8;
     color: white;
   }
 
-  .reset-btn:hover {
-    background: #138496;
-  }
+  .reset-btn:hover { background: #138496; }
 
-  /* Year Filter */
+  /* Filtro de años */
   .year-filter {
     margin-bottom: 1rem;
   }
@@ -831,15 +898,10 @@
     border: none;
   }
 
-  .slider-start::-webkit-slider-thumb {
-    z-index: 2;
-  }
+  .slider-start::-webkit-slider-thumb { z-index: 2; }
+  .slider-end::-webkit-slider-thumb   { z-index: 1; }
 
-  .slider-end::-webkit-slider-thumb {
-    z-index: 1;
-  }
-
-  /* Filters Grid */
+  /* Grid de filtros */
   .filters-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -869,7 +931,7 @@
   .filter-group input:focus {
     outline: none;
     border-color: #69b3a2;
-    box-shadow: 0 0 0 2px rgba(105, 179, 162, 0.25);
+    box-shadow: 0 0 0 2px rgba(105,179,162,0.25);
   }
 
   .genre-filter select {
@@ -883,10 +945,10 @@
   .genre-filter select:focus {
     outline: none;
     border-color: #69b3a2;
-    box-shadow: 0 0 0 2px rgba(105, 179, 162, 0.25);
+    box-shadow: 0 0 0 2px rgba(105,179,162,0.25);
   }
 
-  /* Network Section */
+  /* Sección del grafo */
   .network-section {
     background: white;
     border-radius: 8px;
@@ -923,19 +985,20 @@
 
   .graph-container {
     position: relative;
+    overflow: hidden; /* ya tenías esto para recortar los nodos */
     width: 100%;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    background: #fafafa;
-    overflow: hidden;
+    /* resto de estilos… */
   }
+
 
   .network-svg {
     display: block;
+    width: 100%;
+    height: 100%;
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   }
 
-  /* Chart Section */
+  /* Sección del histograma */
   .chart-section {
     background: white;
     border-radius: 8px;
@@ -960,29 +1023,32 @@
   }
 
   /* Tooltip */
+  /* Estilos básicos del tooltip */
   .tooltip {
     position: absolute;
-    display: none;
-    background: rgba(0, 0, 0, 0.9);
+    pointer-events: none;      /* para que no intercepte el cursor */
+    display: none;             /* oculto por defecto */
+    background: rgba(0, 0, 0, 0.8);
     color: white;
-    padding: 0.75rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    line-height: 1.4;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    pointer-events: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    max-width: 220px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     z-index: 1000;
-    max-width: 250px;
   }
 
-  .tooltip-title {
+  /* Título dentro del tooltip */
+  .tooltip .title {
     font-weight: bold;
+    margin-bottom: 0.25rem;
     font-size: 0.9rem;
-    margin-bottom: 0.5rem;
-    color: #69b3a2;
-    border-bottom: 1px solid #69b3a2;
-    padding-bottom: 0.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding-bottom: 0.2rem;
+    margin-bottom: 0.4rem;
   }
+
 
   /* Responsive */
   @media (max-width: 768px) {
@@ -1043,7 +1109,7 @@
     }
   }
 
-  /* Node hover */
+  /* Efectos hover en nodos y enlaces */
   :global(.node) {
     cursor: pointer;
     transition: opacity 0.2s ease;
@@ -1061,7 +1127,7 @@
     stroke-opacity: 1 !important;
   }
 
-  /* Fade-in animations */
+  /* Animación fadeIn para estados de carga/error */
   .loading-state {
     animation: fadeIn 0.3s ease-in;
   }
@@ -1081,7 +1147,7 @@
     }
   }
 
-  /* Focus outlines */
+  /* Focus outline accesible */
   .back-btn:focus,
   .reset-btn:focus {
     outline: 2px solid #69b3a2;
@@ -1093,7 +1159,7 @@
     outline-offset: 2px;
   }
 
-  /* Custom scrollbar for genre select */
+  /* Scrollbar personalizado para <select multiple> de géneros */
   .genre-filter select::-webkit-scrollbar {
     width: 6px;
   }
