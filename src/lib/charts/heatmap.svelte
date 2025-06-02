@@ -8,7 +8,9 @@
 	let data = [];
 	let heatmapData = [];
 	let loading = true;
-	let selectedMovies = []; // Armazena filmes da célula clicada
+
+  // cada elemento terá { nominations, wins, movies: [...] }
+  let selectedCells = [];
 
 	// Configurações do heatmap
 	const margin = { top: 60, right: 100, bottom: 80, left: 80 };
@@ -171,16 +173,25 @@
               .attr('stroke-width', 3);
         }
 
-        // 2) Reúne os filmes de todas as células que ainda estão marcadas
-        const acumulado = [];
-        d3.selectAll('.cell.selected').each(function(d2) {
-          acumulado.push(...d2.movies);
-        });
+        // Reúne grupos para as células selecionadas
+				const cellsTemp = [];
+				d3.selectAll('.cell.selected').each(function(d2) {
+					cellsTemp.push({
+						nominations: d2.nominations,
+						wins: d2.wins,
+						movies: d2.movies
+							.slice()
+							.sort((a, b) => b.startYear - a.startYear)
+					});
+				});
 
-        // 3) Atualiza o array reactive de Svelte
-        //    (não há intersecção, mas se houvesse, bastaria filtrar duplicatas)
-        selectedMovies = acumulado
-          .sort((a, b) => b.startYear - a.startYear);
+				// Ordena grupos por vitórias decrescente, depois indicações decrescente
+        cellsTemp.sort((a, b) => {
+					if (b.wins !== a.wins) return b.wins - a.wins;
+					return b.nominations - a.nominations;
+				});
+
+        selectedCells = cellsTemp;
       });
 
 		// Eixo X (Indicações)
@@ -222,7 +233,7 @@
 			.attr('text-anchor', 'middle')
 			.style('font-size', '18px')
 			.style('font-weight', 'bold')
-			.text('Heatmap: Vitórias vs Indicações ao Oscar');
+			.text('Heatmap: Oscars wins vs Nominations');
 
 		// Legenda do heatmap
 		const legendWidth = 25;
@@ -276,7 +287,7 @@
 			.attr('x', -legendHeight/2)
 			.style('text-anchor', 'middle')
 			.style('font-size', '16px')
-			.text('Number of Movies');
+			.text('Number of Movies (Log Scale)');
 	}
 </script>
 
@@ -292,32 +303,34 @@
 			<div bind:this={container} class="heatmap"></div>
 
 			<!-- Painel de lista de filmes -->
+			<!-- Painel de lista de filmes, agora agrupado -->
 			<div class="movie-list-panel">
 				<h3>Movies in the selected cells</h3>
-				{#if selectedMovies.length === 0}
+				{#if selectedCells.length === 0}
 					<p>No cells selected.</p>
 				{:else}
-					<ul>
-						{#each selectedMovies as movie}
-							<li>
-								<strong>{movie.primaryTitle} ({movie.startYear})</strong>
-                <br>Nominations: {movie.oscarNominations}, Wins: {movie.oscarWins}
-							</li>
-						{/each}
-					</ul>
+					{#each selectedCells as group}
+						<div class="group">
+							<strong>{group.wins} wins and {group.nominations} nominations - {group.movies.length} {group.movies.length === 1 ? 'Movie' : 'Movies'}</strong>
+							<ul>
+								{#each group.movies as movie}
+									<li>
+										<strong>{movie.primaryTitle} ({movie.startYear})</strong><br/>
+										Nominations: {movie.oscarNominations}, Wins: {movie.oscarWins}
+									</li>
+								{/each}
+							</ul>
+						</div>
+					{/each}
 				{/if}
 			</div>
 		</div>
 
 		<!-- Informações gerais abaixo -->
 		<div class="info">
-			<p><strong>Total de filmes analisados:</strong> {data.length}</p>
-			<p><strong>Filmes com indicações/vitórias:</strong> {heatmapData.reduce((sum, d) => sum + d.count, 0)}</p>
-			<p><strong>Pontos no heatmap:</strong> {heatmapData.length}</p>
-			{#if heatmapData.length > 0}
-				<p><strong>Máximo de indicações:</strong> {Math.max(...heatmapData.map(d => d.nominations))}</p>
-				<p><strong>Máximo de vitórias:</strong> {Math.max(...heatmapData.map(d => d.wins))}</p>
-			{/if}
+      <p><strong>Oscar's Movies analyzed:</strong> {data.length}</p>
+      <p><strong>Max nominations:</strong> {Math.max(...heatmapData.map(d => d.nominations))}</p>
+      <p><strong>Max wins:</strong> {Math.max(...heatmapData.map(d => d.wins))}</p>
 		</div>
 	{/if}
 </div>
