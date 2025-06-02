@@ -7,10 +7,12 @@
   import FilmNetwork from '$lib/charts/FilmNetwork.svelte';
   import { loadMoviesLastMovies } from '$lib/utils/dataLoader.js';
   import Bubble from '$lib/charts/bubble.svelte';
-  import Fita from '../lib/components/Fita.svelte';
+  import Fita from '$lib/components/Fita.svelte';
+  import { currentStep } from '../store/step';
 
-  let current = 0;
+  //let current = 0;
   let scroller;
+
 
   let allMovies = [];
   let searchQuery = '';
@@ -22,7 +24,7 @@
 
     scroller = scrollama()
       .setup({ step: '.step', offset: 0.5, debug: false })
-      .onStepEnter(({ index }) => (current = index));
+      .onStepEnter(({ index }) => (currentStep.set(index)));
 
     window.addEventListener('resize', scroller.resize);
 
@@ -59,6 +61,10 @@
 </script>
 
 <div class="scroll">
+  <div class="fita">
+    <Fita></Fita>
+  </div>
+
   <div class="step intro" data-step="0">
     <h1>¡Bienvenidos a CineDive!</h1>
     <p>
@@ -68,12 +74,7 @@
   </div>
 
   <div class="scroll__text">
-    <div class="step" data-step="0">
-      <h1>Step 1</h1>
-      <Fita></Fita>
-      <div class="content-box"></div>
-    </div>
-    <div class="step" data-step="1">
+    <div class="step" data-step="1" >
       <h1>Step 1: Busca tu película</h1>
       <div class="content-box">
         <p>Escribe al menos tres letras para ver sugerencias.</p>
@@ -87,7 +88,7 @@
       </div>
     </div>
 
-    <div class="step" data-step="2">
+    <div class="step" data-step="2" >
       <h1>Step 2: Explora la red y el bar‐chart por año</h1>
       <div class="content-box split">
         <div class="text">
@@ -109,9 +110,9 @@
   </div>
 
   <div class="scroll__graphic">
-    {#if current === 0}
+    {#if $currentStep === 0}
       <p class="placeholder-text">Step 0: Bienvenida.</p>
-    {:else if current === 1}
+    {:else if $currentStep === 1}
       {#if selectedMovie}
         <p class="placeholder-text">
           Has seleccionado: {selectedMovie}. Baja para ver la red.
@@ -119,7 +120,7 @@
       {:else}
         <p class="placeholder-text">Step 1: Busca y elige una película.</p>
       {/if}
-    {:else if current === 2}
+    {:else if $currentStep === 2}
       {#if selectedMovie}
         <p class="placeholder-text">
           Step 2: Desliza el rango de años en el bar‐chart.
@@ -202,5 +203,14 @@
     justify-content: center;
     padding: 1rem;
     background: #f5f5f5;
+  }
+
+  .fita {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0);
+    z-index: 9999;
+    display: flex;
   }
 </style>
