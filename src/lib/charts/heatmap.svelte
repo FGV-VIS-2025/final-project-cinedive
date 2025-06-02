@@ -157,21 +157,31 @@
 				tooltip.transition().duration(500).style('opacity', 0);
 			})
 			.on('click', function(event, d) {
-        // 1) Remove 'selected' de todas as células (volta ao estado padrão)
-        d3.selectAll('.cell')
-          .classed('selected', false)
-          .attr('stroke', '#fff')
-          .attr('stroke-width', 1);
+        const cell = d3.select(this);
+        const isSelected = cell.classed('selected');
 
-        // 2) Marca somente a célula clicada
-        d3.select(this)
-          .classed('selected', true)
-          .attr('stroke', '#000')
-          .attr('stroke-width', 3);
+        // 1) Se já estava selecionada, desmarca; caso contrário, marca
+        if (isSelected) {
+          cell.classed('selected', false)
+              .attr('stroke', '#fff')
+              .attr('stroke-width', 1);
+        } else {
+          cell.classed('selected', true)
+              .attr('stroke', '#000')
+              .attr('stroke-width', 3);
+        }
 
-				// 3) Atualiza a lista de filmes
-				selectedMovies = d.movies.slice().sort((a, b) => b.startYear - a.startYear);
-			});
+        // 2) Reúne os filmes de todas as células que ainda estão marcadas
+        const acumulado = [];
+        d3.selectAll('.cell.selected').each(function(d2) {
+          acumulado.push(...d2.movies);
+        });
+
+        // 3) Atualiza o array reactive de Svelte
+        //    (não há intersecção, mas se houvesse, bastaria filtrar duplicatas)
+        selectedMovies = acumulado
+          .sort((a, b) => b.startYear - a.startYear);
+      });
 
 		// Eixo X (Indicações)
 		const xAxis = d3.axisBottom(xScale);
@@ -194,7 +204,7 @@
 			.style('text-anchor', 'middle')
 			.style('font-size', '14px')
 			.style('font-weight', 'bold')
-			.text('Número de Indicações ao Oscar');
+			.text('Number of Oscar Nominations');
 
 		g.append('text')
 			.attr('transform', 'rotate(-90)')
@@ -203,7 +213,7 @@
 			.style('text-anchor', 'middle')
 			.style('font-size', '14px')
 			.style('font-weight', 'bold')
-			.text('Número de Vitórias no Oscar');
+			.text('Number of Oscar Wins');
 
 		// Título geral
 		svg.append('text')
@@ -223,7 +233,7 @@
 		const legendY = chartCenterY - legendHeight / 2;
 
 		const legend = svg.append('g')
-			.attr('transform', `translate(${width + margin.left + 20}, ${legendY})`);
+			.attr('transform', `translate(${width + margin.left + 30}, ${legendY})`);
 
 		const defs = svg.append('defs');
 		const gradient = defs.append('linearGradient')
@@ -265,15 +275,15 @@
 			.attr('y', -10)
 			.attr('x', -legendHeight/2)
 			.style('text-anchor', 'middle')
-			.style('font-size', '12px')
-			.text('Nº Filmes');
+			.style('font-size', '16px')
+			.text('Number of Movies');
 	}
 </script>
 
 <div class="heatmap-container">
 	{#if loading}
 		<div class="loading">
-			<p>Carregando dados...</p>
+			<p>Loading data...</p>
 		</div>
 	{:else}
 		<!-- Contêiner possui display flex: à esquerda o heatmap, à direita a lista de filmes -->
@@ -283,9 +293,9 @@
 
 			<!-- Painel de lista de filmes -->
 			<div class="movie-list-panel">
-				<h3>Filmes na célula selecionada</h3>
+				<h3>Movies in the selected cells</h3>
 				{#if selectedMovies.length === 0}
-					<p>Nenhuma célula selecionada.</p>
+					<p>No cells selected.</p>
 				{:else}
 					<ul>
 						{#each selectedMovies as movie}
@@ -394,7 +404,7 @@
 	}
 
   :global(.cell.selected) {
-    stroke: #000 !important;
+    stroke: #000000 !important;
     stroke-width: 3px !important;
   }
 </style>
