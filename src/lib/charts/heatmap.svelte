@@ -159,21 +159,21 @@
 				tooltip.transition().duration(500).style('opacity', 0);
 			})
 			.on('click', function(event, d) {
-        const cell = d3.select(this);
-        const isSelected = cell.classed('selected');
+				const cell = d3.select(this);
+				const isSelected = cell.classed('selected');
 
-        // 1) Se já estava selecionada, desmarca; caso contrário, marca
-        if (isSelected) {
-          cell.classed('selected', false)
-              .attr('stroke', '#fff')
-              .attr('stroke-width', 1);
-        } else {
-          cell.classed('selected', true)
-              .attr('stroke', '#000')
-              .attr('stroke-width', 3);
-        }
+				// 1) Se já estava selecionada, desmarca; caso contrário, marca
+				if (isSelected) {
+				cell.classed('selected', false)
+					.attr('stroke', '#fff')
+					.attr('stroke-width', 1);
+				} else {
+				cell.classed('selected', true)
+					.attr('stroke', '#000')
+					.attr('stroke-width', 3);
+				}
 
-        // Reúne grupos para as células selecionadas
+				// Reúne grupos para as células selecionadas
 				const cellsTemp = [];
 				d3.selectAll('.cell.selected').each(function(d2) {
 					cellsTemp.push({
