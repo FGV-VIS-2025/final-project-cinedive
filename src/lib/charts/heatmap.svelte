@@ -3,6 +3,9 @@
 	import * as d3 from 'd3';
 
 	export let loadMoviesFullData;
+	export let mode;
+
+	console.log('Heatmap mode:', mode);
 
 	let container;
 	let data = [];
@@ -11,6 +14,8 @@
 
   // cada elemento terá { nominations, wins, movies: [...] }
   let selectedCells = [];
+  // Para guardar referências das células no SVG
+	let cellElements = new Map(); 
 
 	// Configurações do heatmap
 	const margin = { top: 60, right: 100, bottom: 80, left: 80 };
@@ -28,11 +33,17 @@
 
 			processData();
 			createHeatmap();
+      applyModeSelection();
 		} catch (error) {
 			console.error('Erro ao carregar dados:', error);
 			loading = false;
 		}
 	});
+
+  // Reage a mudanças do prop mode para atualizar seleção
+	$: if (!loading && heatmapData.length) {
+		applyModeSelection();
+	}
 
 	function processData() {
 		// Filtra dados válidos e agrupa por «nominations-wins», guardando arrays de filmes
@@ -127,6 +138,9 @@
 			.style('pointer-events', 'none')
 			.style('z-index', '1000');
 
+
+    cellElements.clear(); // limpa referências antigas
+
 		// Desenha as células
 		const cells = g.selectAll('.cell')
 			.data(heatmapData)
@@ -139,10 +153,7 @@
 			.attr('fill', d => colorScale(Math.log(d.count)))
 			.attr('stroke', '#fff')
 			.attr('stroke-width', 1)
-			.style('cursor', 'pointer');
-
-		// Interações: hover para tooltip e clique para lista de filmes
-		cells
+			.style('cursor', mode === 'exploration' ? 'pointer' : 'default')
 			.on('mouseover', function(event, d) {
 				d3.select(this).attr('stroke', '#333').attr('stroke-width', 2);
 				tooltip.transition().duration(200).style('opacity', .9);
@@ -155,44 +166,36 @@
 					.style('top', (event.pageY - 28) + 'px');
 			})
 			.on('mouseout', function() {
-				d3.select(this).attr('stroke', '#fff').attr('stroke-width', 1);
+				// Só remove o hover se não estiver selecionado
+				if (!d3.select(this).classed('selected')) {
+					d3.select(this).attr('stroke', '#fff').attr('stroke-width', 1);
+				}
 				tooltip.transition().duration(500).style('opacity', 0);
 			})
 			.on('click', function(event, d) {
+				if (mode !== 'exploration') return; // bloqueia clique em outros modos
+
 				const cell = d3.select(this);
 				const isSelected = cell.classed('selected');
 
-				// 1) Se já estava selecionada, desmarca; caso contrário, marca
 				if (isSelected) {
-				cell.classed('selected', false)
-					.attr('stroke', '#fff')
-					.attr('stroke-width', 1);
+					cell.classed('selected', false)
+						.attr('stroke', '#fff')
+						.attr('stroke-width', 1);
 				} else {
-				cell.classed('selected', true)
-					.attr('stroke', '#000')
-					.attr('stroke-width', 3);
+					cell.classed('selected', true)
+						.attr('stroke', '#000')
+						.attr('stroke-width', 3);
 				}
 
-				// Reúne grupos para as células selecionadas
-				const cellsTemp = [];
-				d3.selectAll('.cell.selected').each(function(d2) {
-					cellsTemp.push({
-						nominations: d2.nominations,
-						wins: d2.wins,
-						movies: d2.movies
-							.slice()
-							.sort((a, b) => b.startYear - a.startYear)
-					});
-				});
+				updateSelectedCellsFromDOM();
+    });
 
-				// Ordena grupos por vitórias decrescente, depois indicações decrescente
-        cellsTemp.sort((a, b) => {
-					if (b.wins !== a.wins) return b.wins - a.wins;
-					return b.nominations - a.nominations;
-				});
-
-        selectedCells = cellsTemp;
-      });
+    // Guarda as referências para poder atualizar seleção depois
+		cells.each(function(d) {
+			const key = `${d.nominations}-${d.wins}`;
+			cellElements.set(key, d3.select(this));
+		});
 
 		// Eixo X (Indicações)
 		const xAxis = d3.axisBottom(xScale);
@@ -288,6 +291,84 @@
 			.style('text-anchor', 'middle')
 			.style('font-size', '16px')
 			.text('Number of Movies (Log Scale)');
+	}
+
+  // Atualiza selectedCells com base nas células SVG que possuem a classe 'selected'
+	function updateSelectedCellsFromDOM() {
+		const cellsTemp = [];
+		cellElements.forEach((cellSel, key) => {
+			if (cellSel.classed('selected')) {
+				const d = heatmapData.find(h => `${h.nominations}-${h.wins}` === key);
+				if (d) {
+					cellsTemp.push({
+						nominations: d.nominations,
+						wins: d.wins,
+						movies: d.movies.slice().sort((a, b) => b.startYear - a.startYear)
+					});
+				}
+			}
+		});
+
+		cellsTemp.sort((a, b) => {
+			if (b.wins !== a.wins) return b.wins - a.wins;
+			return b.nominations - a.nominations;
+		});
+
+		selectedCells = cellsTemp;
+	}
+
+	// Aplica seleção automática conforme o modo
+	function applyModeSelection() {
+		if (!cellElements.size) return;
+
+		// Remove todas as seleções visuais
+		cellElements.forEach(cell => {
+			cell.classed('selected', false)
+          .classed('auto-selected', false)
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 1);
+		});
+
+		if (mode === 'exploration') {
+			return;
+		}
+
+		let cellsToSelect = [];
+
+		if (mode === 'topWins') {
+			const maxWins = d3.max(heatmapData, d => d.wins);
+			cellsToSelect = heatmapData.filter(d => d.wins === maxWins);
+		} 
+    else if (mode === 'topNominations') {
+			const maxNoms = d3.max(heatmapData, d => d.nominations);
+			cellsToSelect = heatmapData.filter(d => d.nominations === maxNoms);
+		}
+
+		const selectedGroups = [];
+
+		cellsToSelect.forEach(d => {
+			const key = `${d.nominations}-${d.wins}`;
+			const cell = cellElements.get(key);
+			if (cell) {
+				cell.classed('auto-selected', true)
+					// .attr('stroke', '#000')
+					.attr('stroke-width', 3);
+
+				selectedGroups.push({
+					nominations: d.nominations,
+					wins: d.wins,
+					movies: d.movies.slice().sort((a, b) => b.startYear - a.startYear)
+				});
+			}
+		});
+
+		// Ordena seleção para painel de filmes
+		selectedGroups.sort((a, b) => {
+			if (b.wins !== a.wins) return b.wins - a.wins;
+			return b.nominations - a.nominations;
+		});
+
+		selectedCells = selectedGroups;
 	}
 </script>
 
@@ -419,5 +500,11 @@
   :global(.cell.selected) {
     stroke: #000000 !important;
     stroke-width: 3px !important;
+  }
+
+  :global(.cell.auto-selected) {
+    stroke: #ff6600 !important; /* borda laranja */
+    stroke-width: 3px !important;
+    stroke-dasharray: 4 2; /* linha tracejada */
   }
 </style>
