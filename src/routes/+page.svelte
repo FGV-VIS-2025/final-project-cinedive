@@ -9,6 +9,7 @@
   import Bubble from '$lib/charts/bubble.svelte';
   import Fita from '$lib/components/Fita.svelte';
   import WorldMap from '$lib/components/WorldMap.svelte';
+  import { currentStep } from '../store/step';
 
 
   //let current = 0;
@@ -56,7 +57,9 @@
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const stepNum = +entry.target.getAttribute('data-step');
-            currentStep = stepNum;
+            console.log('Step intersecting:', stepNum);
+            currentStep.set(stepNum);
+            console.log($currentStep)
           }
         });
       },
@@ -72,16 +75,16 @@
     if (observer) observer.disconnect();
   });
 
-  let currentStep = 0;
+  // let currentStep = 0;
 
   function onMovieSelect(event) {
     selectedMovie = event.detail;
   }
 
-  function handleBack() {
-    showGraphView = false;
-    currentStep = 1;
-  }
+  // function handleBack() {
+  //   showGraphView = false;
+  //   currentStep = 1;
+  // }
 </script>
 
 <svelte:head>
@@ -131,11 +134,7 @@
           Enter at least three letters of a movie title to see suggestions.
           Our database includes thousands of movies and their related titles.
         </p>
-        <div>
-          {#if worldGeoJson && data_for_fitas}
-            <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
-          {/if}
-        </div>
+        
 
         {#if isLoading}
           <div class="loading">
@@ -181,6 +180,11 @@
     <div class="step" data-step="2">
       <div class="step-content">
         <h2>Step 2: Explore the connections</h2>
+        <div>
+          {#if worldGeoJson && data_for_fitas}
+            <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
+          {/if}
+        </div>
         <p class="step-description">
           Once you've chosen a film, you'll see an option to open the full network graph in a new view.
         </p>
