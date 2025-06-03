@@ -11,7 +11,6 @@
   import WorldMap from '$lib/components/WorldMap.svelte';
   import { currentStep } from '../store/step';
 
-
   let current = 0;
   let scroller;
   let handleResize;
@@ -35,14 +34,12 @@
     if (res.ok) {
       worldGeoJson = await res.json();
     } else {
-      console.error('Erro ao carregar world.json:', res.status);
+      console.error('Error al cargar world.json:', res.status);
     }
 
-    data_for_fitas = await getDataForFitas()
-    console.log("Fitas carregadas:", data_for_fitas);
+    data_for_fitas = await getDataForFitas();
+    console.log("Fitas cargadas:", data_for_fitas);
   });
-
-
 
   // Objeto con detalles de la película seleccionada (tconst, primaryTitle, startYear)
   $: selectedMovieInfo = selectedMovie
@@ -72,11 +69,9 @@
     steps.forEach((step) => observer.observe(step));
   });
 
-  
   onDestroy(() => {
     if (observer) observer.disconnect();
   });
-
 
   // Al montar, cargamos la lista de películas y configuramos scrollama
   onMount(async () => {
@@ -153,7 +148,7 @@
 
 {#if !showGraphView}
   <!-- ========================
-       MODO BÚSQUEDA / PASOS
+       MODO BÚSQUEDA / PASOS (Scrollytelling)
      ======================== -->
   <div class="step-container">
     <!-- Intro Section -->
@@ -161,145 +156,153 @@
       <div class="intro-content">
         <h1>Welcome to CineDive!</h1>
         <p class="intro-text">
-          Discover the fascinating connections between films through actors, directors, and collaborators.
-          An interactive experience exploring the history of cinema.
+          An interactive journey through cinematic history: discover how Oscar-nominated and winning
+          films are interwoven via actors, directors, and collaborators.
         </p>
         <div class="scroll-indicator">
-          <span>Scroll to start</span>
+          <span>Scroll to start your exploration</span>
           <div class="arrow-down"></div>
         </div>
       </div>
     </section>
 
-    <!-- Colocando a fita feia -->
+    <!-- Fita decorativa en overlay -->
     <div class="overlay">
-      <Fita></Fita>
+      <Fita />
     </div> 
 
-    <!-- Main Content con scrollama -->
+    <!-- Contenido principal con pasos scrollytelling -->
 
-      <!-- Texto con pasos -->
+    <!-- ===================================
+         Step 1: Search your film
+         =================================== -->
+    <div class="step" data-step="1">
+      <div class="step-content">
+        <h2>Step 1: Search your Film</h2>
+        <!-- Narración Scrollytelling en inglés -->
+        <p class="narrative">
+          Imagine traveling back to the set where your favorite movie was shot. Every film starts with a spark
+          of inspiration, brings together a team of talented individuals, and leaves a lasting mark on popular
+          culture. Use the search bar to find that one film that changed everything for you.
+        </p>
 
-        <!-- Step 1: Búsqueda -->
-        <div class="step" data-step="1">
-          <div class="step-content">
-            <h2>Step 1: Search your Film</h2>
-            <p class="step-description">
-              Enter at least three letters of a movie title to see suggestions.
-              Our database includes thousands of movies and their related titles.
-            </p>
-
-            {#if isLoading}
-              <div class="loading">
-                <div class="spinner"></div>
-                <p>Loading movies...</p>
-              </div>
-            {:else if error}
-              <div class="error">
-                <p>{error}</p>
-                <button class="retry-btn" on:click={() => location.reload()}>
-                  Try again
-                </button>
-              </div>
-            {:else}
-              <div class="search-section">
-                <FilmSearch
-                  bind:query={searchQuery}
-                  options={filteredMovies}
-                  on:select={onMovieSelect}
-                  placeholder="Search movie..."
-                />
-
-                {#if selectedMovieInfo}
-                  <div class="selected-movie">
-                    <h4>Selected film:</h4>
-                    <div class="movie-card">
-                      <strong>{selectedMovieInfo.primaryTitle}</strong>
-                      {#if selectedMovieInfo.startYear}
-                        <span class="year">({selectedMovieInfo.startYear})</span>
-                      {/if}
-                    </div>
-                    <button class="reset-btn" on:click={() => { selectedMovie = null; searchQuery = ''; }}>
-                      Change selection
-                    </button>
-                  </div>
-                {/if}
-              </div>
-            {/if}
+        {#if isLoading}
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading movie list...</p>
           </div>
-        </div>
-
-        <!-- Step 2: Instrucción para pasar al grafo -->
-        <div class="step" data-step="2">
-          <div class="step-content">
-            
-            <h2>Choose your ribbons</h2>
-            <div class="horizontal-layout">
-              <div>
-                {#if worldGeoJson && data_for_fitas}
-                  <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
-                {/if}
-              </div>
-              <div>
-                <p class="step-description">
-                  .      Grab your popcorn and soda, choose the tapes you want to play and enjoy the show.
-                </p>
-              </div>
-            </div>
-            
-            
-            <!-- {#if !selectedMovie}
-              <div class="warning-message">
-                <p>You must first select a movie in Step 1</p>
-                <button class="back-btn" on:click={() => goToStep(0)}>
-                  Return to Step 1
-                </button>
-              </div>
-            {/if} -->
-
-            {#if selectedMovie}
-              <div class="open-graph-note">
-                <p>
-                  You selected <strong>{selectedMovieInfo.primaryTitle}</strong>. 
-                  Click the button below to view the full network graph.
-                </p>
-                <button class="view-graph-btn" on:click={() => (showGraphView = true)}>
-                  View Full Graph
-                </button>
-              </div>
-            {/if}
+        {:else if error}
+          <div class="error">
+            <p>{error}</p>
+            <button class="retry-btn" on:click={() => location.reload()}>
+              Try again
+            </button>
           </div>
-        </div>
-
-        <!-- Step 3: Heatmap de Oscars -->
-        <div class="step" data-step="3">
-          <div class="step-content">
-            <h2>Step 3: Oscar Wins vs Nominations Heatmap</h2>
-            <Heatmap
-              loadMoviesFullData={loadMoviesLastMovies}
-              mode={heatmapMode}
+        {:else}
+          <div class="search-section">
+            <FilmSearch
+              bind:query={searchQuery}
+              options={filteredMovies}
+              on:select={onMovieSelect}
+              placeholder="Type at least 3 letters..."
             />
-            <!-- Opcional: controles para cambiar modo -->
-            <div style="margin-top: 1rem;">
-              <label>
-                <input type="radio" bind:group={heatmapMode} value="exploration" />
-                Exploration
-              </label>
-              <label style="margin-left: 1rem;">
-                <input type="radio" bind:group={heatmapMode} value="topWins" />
-                Top Wins
-              </label>
-              <label style="margin-left: 1rem;">
-                <input type="radio" bind:group={heatmapMode} value="topNominations" />
-                Top Nominations
-              </label>
-            </div>
+
+            {#if selectedMovieInfo}
+              <div class="selected-movie">
+                <h4>You have selected:</h4>
+                <div class="movie-card">
+                  <strong>{selectedMovieInfo.primaryTitle}</strong>
+                  {#if selectedMovieInfo.startYear}
+                    <span class="year">({selectedMovieInfo.startYear})</span>
+                  {/if}
+                </div>
+                <button class="reset-btn" on:click={() => { selectedMovie = null; searchQuery = ''; }}>
+                  Change selection
+                </button>
+              </div>
+            {/if}
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <!-- ===================================
+         Step 2: Choose your ribbons
+         =================================== -->
+    <div class="step" data-step="2">
+      <div class="step-content">
+        <h2>Step 2: Choose your ribbons</h2>
+        <!-- Narración Scrollytelling en inglés -->
+        <p class="narrative">
+          From Hollywood to Bollywood and beyond, every region in the world has its own cinematic fingerprint.
+          Explore the world map and select the “ribbons” that pique your curiosity. This way, you’ll embark on
+          a geographic journey tracing cinematic influence across the globe.
+        </p>
+        <div class="horizontal-layout">
+          <div class="map-wrapper">
+            {#if worldGeoJson && data_for_fitas}
+              <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
+            {/if}
+          </div>
+          <div class="step-info">
+            <p class="step-description">
+              Adjust filters and choose the countries that shaped cinematic trends—from golden age classics
+              to modern cult favorites.
+            </p>
           </div>
         </div>
 
+        {#if selectedMovie}
+          <div class="open-graph-note">
+            <p>
+              You selected <strong>{selectedMovieInfo.primaryTitle}</strong> in the previous step.
+              Now, if you want to dive deeper into all its connections, click below to view the full network graph.
+            </p>
+            <button class="view-graph-btn" on:click={() => (showGraphView = true)}>
+              View Full Graph
+            </button>
+          </div>
+        {/if}
       </div>
+    </div>
 
-      <!-- Gráfico Sticky (en modo scroll) solo muestra preview -->
+    <!-- ===================================
+         Step 3: Oscar Wins vs Nominations Heatmap
+         =================================== -->
+    <div class="step" data-step="3">
+      <div class="step-content">
+        <h2>Step 3: Oscar Wins vs Nominations Heatmap</h2>
+        <!-- Narración Scrollytelling en inglés -->
+        <p class="narrative">
+          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
+          visualize how nominations and wins correlate: each cell groups films with similar numbers of
+          nominations and victories, revealing patterns in cinematic recognition.
+        </p>
+
+        <Heatmap
+          loadMoviesFullData={loadMoviesLastMovies}
+          mode={heatmapMode}
+        />
+
+        <!-- Controles para cambiar modo de visualización -->
+        <div class="mode-controls" style="margin-top: 1rem;">
+          <label>
+            <input type="radio" bind:group={heatmapMode} value="exploration" />
+            Exploration
+          </label>
+          <label style="margin-left: 1rem;">
+            <input type="radio" bind:group={heatmapMode} value="topWins" />
+            Top Wins
+          </label>
+          <label style="margin-left: 1rem;">
+            <input type="radio" bind:group={heatmapMode} value="topNominations" />
+            Top Nominations
+          </label>
+        </div>
+      </div>
+    </div>
+
+  </div>
 
 {:else}
   <!-- ========================
@@ -327,9 +330,7 @@
      ESTILOS MODO BÚSQUEDA
    ======================== */
 
-
   /* Intro Section */
-
   .intro-section {
     height: 100vh;
     display: flex;
@@ -380,11 +381,21 @@
   }
 
   /* Layout principal */
-
+  .step-container {
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    height: 100vh;
+    scroll-behavior: smooth;
+  }
 
   .step {
-    margin-bottom: 100vh;
+    scroll-snap-align: start;
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    height: 100vh; /* cada paso ocupa pantalla completa */
     padding: 2rem 0;
+    padding-left: 10rem;
+    box-sizing: border-box;
   }
 
   .step-content h2 {
@@ -393,7 +404,6 @@
     margin-bottom: 1rem;
     font-weight: 600;
     margin-left: 3rem;
-    
   }
 
   .step-description {
@@ -403,12 +413,22 @@
     margin-bottom: 2rem;
   }
 
+  /* Texto narrativo (scrollytelling) */
+  .narrative {
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: #444;
+    margin: 1rem 3rem 2rem 3rem;
+    max-width: 800px;
+  }
+
   /* Search Section */
   .search-section {
     background: white;
     padding: 2rem;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    margin: 0 3rem;
   }
 
   .selected-movie {
@@ -417,6 +437,7 @@
     background: #f8f9fa;
     border-radius: 8px;
     border-left: 4px solid #667eea;
+    margin: 0 3rem;
   }
 
   .movie-card {
@@ -456,7 +477,7 @@
     border: 1px solid #ffeaa7;
     border-radius: 8px;
     padding: 1rem;
-    margin: 1rem 0;
+    margin: 1rem 3rem;
     text-align: center;
   }
 
@@ -471,6 +492,7 @@
   .error {
     text-align: center;
     padding: 2rem;
+    margin: 0 3rem;
   }
 
   .spinner {
@@ -494,19 +516,36 @@
     padding: 1rem;
     border-radius: 6px;
     border: 1px solid #cfe0ff;
-    margin-top: 1rem;
+    margin: 1rem 3rem;
   }
 
   .open-graph-note p {
     margin: 0 0 1rem 0;
   }
 
-  /* Sticky Preview (no esencial) */
+  /* Diseño horizontal para Step 2 */
+  .horizontal-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+    margin: 0 3rem;
+  }
 
+  .map-wrapper {
+    flex: 1;
+  }
 
+  .step-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
 
-
-
+  /* Controles de modo (Heatmap) */
+  .mode-controls label {
+    font-size: 1rem;
+    color: #333;
+  }
 
   /* =========================
      ESTILOS MODO GRAFO COMPLETO
@@ -544,25 +583,8 @@
     display: block;
   }
 
-  .step-container {
-    scroll-snap-type: y mandatory;
-    overflow-y: scroll;
-    height: 100vh;
-    scroll-behavior: smooth;
-  }
-
-  .step {
-    scroll-snap-align: start;
-    scroll-snap-type: y mandatory;
-    overflow-y: scroll;
-    height: 100vh; /* cada passo ocupa uma tela inteira */
-    padding: 2rem;
-    padding-left: 10rem;
-    box-sizing: border-box;
-  }
-
   /* ========================
-     Estilos compartidos / responsive
+     ESTILOS COMPARTIDOS / Responsive
    ======================== */
   @media (max-width: 1024px) {
     .step {
@@ -571,13 +593,21 @@
     .intro-content h1 {
       font-size: 2.5rem;
     }
+    .narrative {
+      margin: 1rem 2rem 2rem 2rem;
+      font-size: 1rem;
+    }
+    .search-section,
+    .open-graph-note,
+    .horizontal-layout {
+      margin: 0 2rem;
+    }
   }
 
   @media (max-width: 768px) {
     .step-content h2 {
       font-size: 2rem;
       margin-left: 15rem;
-      
       padding-left: 15rem;
     }
     .intro-content h1 {
@@ -589,9 +619,15 @@
     }
     .search-section {
       padding: 1rem;
+      margin: 0 1rem;
     }
     .open-graph-note {
       padding: 0.75rem;
+      margin: 0 1rem;
+    }
+    .narrative {
+      margin: 1rem;
+      font-size: 0.95rem;
     }
   }
 
@@ -604,8 +640,9 @@
       margin-left: 15rem;
       padding-left: 15rem;
     }
-    .step-description {
-      font-size: 1rem;
+    .step-description,
+    .narrative {
+      font-size: 0.9rem;
     }
     .step {
       padding: 1rem 0;
@@ -624,11 +661,4 @@
     background-color: rgba(0,0,0,0); 
     z-index: 9999; 
   }
-
-  .horizontal-layout {
-    display: flex;
-    flex-direction: row;
-    gap: 1rem; /* opcional */
-  }
-
 </style>
