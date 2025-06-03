@@ -7,6 +7,7 @@
   import { loadMoviesLastMovies, getDataForFitas } from '$lib/utils/dataLoader.js';
   import Bubble from '$lib/charts/bubble.svelte';
   import Fita from '$lib/components/Fita.svelte';
+  import Heatmap from '$lib/charts/heatmap.svelte';
   import WorldMap from '$lib/components/WorldMap.svelte';
   import { currentStep } from '../store/step';
 
@@ -27,6 +28,7 @@
 
   let worldGeoJson;
   let data_for_fitas;
+  let heatmapMode = 'exploration';
 
   onMount(async () => {
     const res = await fetch(`/mapas/World.json`);
@@ -269,35 +271,32 @@
           </div>
         </div>
 
-        <!-- Step 3: Consejos si aún no hay selección -->
+        <!-- Step 3: Heatmap de Oscars -->
         <div class="step" data-step="3">
           <div class="step-content">
-            <h2>Step 3: Analyze the Data</h2>
-            <p class="step-description">
-              Use the filters and explore different connections. Hover on nodes for details.
-            </p>
-            {#if !selectedMovie}
-              <div class="warning-message">
-                <p>⚠️ You must first select a movie in Step 1</p>
-                <button class="back-btn" on:click={() => goToStep(0)}>
-                  Return to Step 1
-                </button>
-              </div>
-            {/if}
-
-            {#if selectedMovie}
-              <div class="analytics-tips">
-                <h4>Exploration Tips:</h4>
-                <ul>
-                  <li>Adjust the year range to see temporal trends</li>
-                  <li>Filter by genres to find specific patterns</li>
-                  <li>Use rating and votes filters for quality</li>
-                  <li>Hover over nodes to see details</li>
-                </ul>
-              </div>
-            {/if}
+            <h2>Step 3: Oscar Wins vs Nominations Heatmap</h2>
+            <Heatmap
+              loadMoviesFullData={loadMoviesLastMovies}
+              mode={heatmapMode}
+            />
+            <!-- Opcional: controles para cambiar modo -->
+            <div style="margin-top: 1rem;">
+              <label>
+                <input type="radio" bind:group={heatmapMode} value="exploration" />
+                Exploration
+              </label>
+              <label style="margin-left: 1rem;">
+                <input type="radio" bind:group={heatmapMode} value="topWins" />
+                Top Wins
+              </label>
+              <label style="margin-left: 1rem;">
+                <input type="radio" bind:group={heatmapMode} value="topNominations" />
+                Top Nominations
+              </label>
+            </div>
           </div>
         </div>
+
       </div>
 
       <!-- Gráfico Sticky (en modo scroll) solo muestra preview -->
