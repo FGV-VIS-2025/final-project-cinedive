@@ -377,7 +377,7 @@
         const { cell, original } = ref;
 
 				cell.classed('auto-selected', true)
-					  .attr('stroke-width', 3);
+					.attr('stroke-width', 3);
 
         // Calcula nova largura/altura e nova posição para centralizar
         const newWidth = original.width * scaleFactor;
