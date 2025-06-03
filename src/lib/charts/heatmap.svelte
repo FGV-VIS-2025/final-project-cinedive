@@ -1,3 +1,4 @@
+<!-- Heatmap Component -->
 <script>
 	import { onMount, tick } from 'svelte';
 	import * as d3 from 'd3';
@@ -193,8 +194,19 @@
 
     // Guarda as referências para poder atualizar seleção depois
 		cells.each(function(d) {
+      const cell = d3.select(this);
 			const key = `${d.nominations}-${d.wins}`;
-			cellElements.set(key, d3.select(this));
+
+      // Salva os valores originais para usar na animação
+      const original = {
+        x: +cell.attr('x'),
+        y: +cell.attr('y'),
+        width: +cell.attr('width'),
+        height: +cell.attr('height')
+      };
+
+      // Armazena original junto com a célula
+      cellElements.set(key, { cell, original });
 		});
 
 		// Eixo X (Indicações)
@@ -296,8 +308,8 @@
   // Atualiza selectedCells com base nas células SVG que possuem a classe 'selected'
 	function updateSelectedCellsFromDOM() {
 		const cellsTemp = [];
-		cellElements.forEach((cellSel, key) => {
-			if (cellSel.classed('selected')) {
+		cellElements.forEach(({cell}, key) => {
+			if (cell.classed('selected')) {
 				const d = heatmapData.find(h => `${h.nominations}-${h.wins}` === key);
 				if (d) {
 					cellsTemp.push({
@@ -321,12 +333,18 @@
 	function applyModeSelection() {
 		if (!cellElements.size) return;
 
+    const scaleFactor = 1.2; // aumenta 20%
+
 		// Remove todas as seleções visuais
-		cellElements.forEach(cell => {
+		cellElements.forEach(({cell, original}) => {
 			cell.classed('selected', false)
           .classed('auto-selected', false)
           .attr('stroke', '#fff')
-          .attr('stroke-width', 1);
+          .attr('stroke-width', 1)
+          .attr('x', original.x)
+          .attr('y', original.y)
+          .attr('width', original.width)
+          .attr('height', original.height);
 		});
 
 		if (mode === 'exploration') {
@@ -348,11 +366,25 @@
 
 		cellsToSelect.forEach(d => {
 			const key = `${d.nominations}-${d.wins}`;
-			const cell = cellElements.get(key);
-			if (cell) {
+			const ref = cellElements.get(key);
+
+			if (ref) {
+        const { cell, original } = ref;
+
 				cell.classed('auto-selected', true)
-					// .attr('stroke', '#000')
 					.attr('stroke-width', 3);
+
+        // Calcula nova largura/altura e nova posição para centralizar
+        const newWidth = original.width * scaleFactor;
+        const newHeight = original.height * scaleFactor;
+        const newX = original.x - (newWidth - original.width) / 2;
+        const newY = original.y - (newHeight - original.height) / 2;
+        
+        // Aplica animação suavemente (CSS transition faz o resto)
+        cell.attr('x', newX)
+            .attr('y', newY)
+            .attr('width', newWidth)
+            .attr('height', newHeight);
 
 				selectedGroups.push({
 					nominations: d.nominations,
@@ -488,6 +520,11 @@
 		color: #333;
 	}
 
+  :global(.cell) {
+    transition: all 0.3s ease; /* transição para atributos animados */
+    filter: none;
+  }
+
 	:global(.cell:hover) {
 		stroke: #333 !important;
 		stroke-width: 2px !important;
@@ -503,6 +540,8 @@
   }
 
   :global(.cell.auto-selected) {
+    filter: drop-shadow(0 0 6px rgba(255, 102, 0, 0.7));
+    cursor: default;
     stroke: #ff6600 !important; /* borda laranja */
     stroke-width: 3px !important;
     stroke-dasharray: 4 2; /* linha tracejada */
