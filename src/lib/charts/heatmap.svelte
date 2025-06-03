@@ -47,9 +47,9 @@
 		applyModeSelection();
 	}
 
-  $: if (mode) {
-		applyModeSelection();
-	}
+	// $: if (mode) {
+	// 	applyModeSelection();
+	// }
 
 	function processData() {
 		// Filtra dados válidos e agrupa por «nominations-wins», guardando arrays de filmes
@@ -455,7 +455,7 @@
 
 <style>
 	.heatmap-container {
-		width: 90%;
+		width: 75%;
 		padding: 20px;
 		background: #a1a1a1;
 		border-radius: 8px;
