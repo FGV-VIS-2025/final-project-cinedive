@@ -231,15 +231,21 @@
         <div class="step" data-step="2">
           <div class="step-content">
             
-            <h2>Step 2: Explore the connections</h2>
-            <div>
-              {#if worldGeoJson && data_for_fitas}
-                <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
-              {/if}
+            <h2>Choose your ribbons</h2>
+            <div class="horizontal-layout">
+              <div>
+                {#if worldGeoJson && data_for_fitas}
+                  <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
+                {/if}
+              </div>
+              <div>
+                <p class="step-description">
+                  .      Grab your popcorn and soda, choose the tapes you want to play and enjoy the show.
+                </p>
+              </div>
             </div>
-            <p class="step-description">
-              Once you've chosen a film, you'll see an option to open the full network graph in a new view.
-            </p>
+            
+            
             <!-- {#if !selectedMovie}
               <div class="warning-message">
                 <p>You must first select a movie in Step 1</p>
@@ -324,6 +330,7 @@
 
 
   /* Intro Section */
+
   .intro-section {
     height: 100vh;
     display: flex;
@@ -386,6 +393,8 @@
     color: #333;
     margin-bottom: 1rem;
     font-weight: 600;
+    margin-left: 3rem;
+    
   }
 
   .step-description {
@@ -568,6 +577,9 @@
   @media (max-width: 768px) {
     .step-content h2 {
       font-size: 2rem;
+      margin-left: 15rem;
+      
+      padding-left: 15rem;
     }
     .intro-content h1 {
       font-size: 2rem;
@@ -590,6 +602,8 @@
     }
     .step-content h2 {
       font-size: 1.5rem;
+      margin-left: 15rem;
+      padding-left: 15rem;
     }
     .step-description {
       font-size: 1rem;
@@ -611,4 +625,11 @@
     background-color: rgba(0,0,0,0); 
     z-index: 9999; 
   }
+
+  .horizontal-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem; /* opcional */
+  }
+
 </style>
