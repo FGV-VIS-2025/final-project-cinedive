@@ -154,7 +154,7 @@
      ======================== -->
   <div class="step-container">
     <!-- Intro Section -->
-    <div class= "step", data-step="0">
+    <!-- <div class= "step", data-step="0"> -->
       <section class="intro-section">
         <div class="intro-content">
           <h1>Welcome to CineDive!</h1>
@@ -169,7 +169,7 @@
         </div>
       </section>
   
-    </div>
+    <!-- </div> -->
     
     <!-- Fita decorativa en overlay -->
     <div class="overlay">
