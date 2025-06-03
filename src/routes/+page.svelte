@@ -7,6 +7,7 @@
   import { loadMoviesLastMovies } from '$lib/utils/dataLoader.js';
   import Bubble from '$lib/charts/bubble.svelte';
   import Fita from '../lib/components/Fita.svelte';
+  import { currentStep } from '../store/step';
 
 
   let current = 0;
@@ -27,6 +28,31 @@
   $: selectedMovieInfo = selectedMovie
     ? allMovies.find(m => m.tconst === selectedMovie)
     : null;
+
+  let observer;
+
+  onMount(() => {
+    const steps = document.querySelectorAll('.step');
+
+    observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const stepNum = +entry.target.getAttribute('data-step');
+            console.log('Step intersecting:', stepNum);
+            currentStep.set(stepNum);
+            console.log($currentStep)
+          }
+        });
+      },
+      {
+        threshold: 0.6
+      }
+    );
+
+    steps.forEach((step) => observer.observe(step));
+  });
+
 
   // Al montar, cargamos la lista de películas y configuramos scrollama
   onMount(async () => {
@@ -51,29 +77,7 @@
     }
 
     // Import dinámico de scrollama (para el modo búsqueda/pasos)
-    const Scrollama = (await import('scrollama')).default;
-    scroller = Scrollama()
-      .setup({
-        step: '.step',
-        container: '.scroll__text',
-        graphic: '.scroll__graphic',
-        offset: 0.5,
-        debug: false
-      })
-      .onStepEnter(({ index }) => {
-        current = index + 1;
-      });
-
-    handleResize = () => {
-      if (scroller && scroller.resize) {
-        scroller.resize();
-      }
-    };
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
+    
   });
 
   onDestroy(() => {
@@ -127,7 +131,7 @@
   <!-- ========================
        MODO BÚSQUEDA / PASOS
      ======================== -->
-  <div class="scroll-container">
+  <div class="step-container">
     <!-- Intro Section -->
     <section class="intro-section">
       <div class="intro-content">
@@ -143,10 +147,15 @@
       </div>
     </section>
 
+    <!-- Colocando a fita feia -->
+    <div class="overlay">
+      <Fita></Fita>
+    </div> 
+
     <!-- Main Content con scrollama -->
-    <div class="scroll-layout">
+
       <!-- Texto con pasos -->
-      <div class="scroll__text">
+
         <!-- Step 1: Búsqueda -->
         <div class="step" data-step="1">
           <div class="step-content">
@@ -258,22 +267,7 @@
       </div>
 
       <!-- Gráfico Sticky (en modo scroll) solo muestra preview -->
-      <div class="scroll__graphic">
-        <div class="graphic-content">
-          <!-- Si hay película seleccionada, puede mostrarse un preview muy básico -->
-          {#if selectedMovie}
-            <div class="network-preview">
-              <p>Once ready, click “View Full Graph”</p>
-            </div>
-          {:else}
-            <div class="welcome-graphic">
-              <p>Select a movie in Step 1 to see a preview</p>
-            </div>
-          {/if}
-        </div>
-      </div>
-    </div>
-  </div>
+
 {:else}
   <!-- ========================
        MODO GRAFO COMPLETO
@@ -299,9 +293,7 @@
   /* ========================
      ESTILOS MODO BÚSQUEDA
    ======================== */
-  .scroll-container {
-    width: 100%;
-  }
+
 
   /* Intro Section */
   .intro-section {
@@ -354,17 +346,7 @@
   }
 
   /* Layout principal */
-  .scroll-layout {
-    display: grid;
-    grid-template-columns: 45% 55%;
-    min-height: 100vh;
-  }
 
-  .scroll__text {
-    padding: 2rem;
-    background: #fafafa;
-    overflow-y: auto;
-  }
 
   .step {
     margin-bottom: 100vh;
@@ -484,31 +466,11 @@
   }
 
   /* Sticky Preview (no esencial) */
-  .scroll__graphic {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    border-left: 1px solid #e0e0e0;
-  }
 
-  .graphic-content {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-  }
 
-  .network-preview,
-  .welcome-graphic {
-    text-align: center;
-    color: #666;
-  }
+
+
+
 
   /* =========================
      ESTILOS MODO GRAFO COMPLETO
@@ -546,17 +508,27 @@
     display: block;
   }
 
+  .step-container {
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    height: 100vh;
+    scroll-behavior: smooth;
+  }
+
+  .step {
+    scroll-snap-align: start;
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    height: 100vh; /* cada passo ocupa uma tela inteira */
+    padding: 2rem;
+    padding-left: 10rem;
+    box-sizing: border-box;
+  }
+
   /* ========================
      Estilos compartidos / responsive
    ======================== */
   @media (max-width: 1024px) {
-    .scroll-layout {
-      grid-template-columns: 1fr;
-    }
-    .scroll__graphic {
-      position: relative;
-      height: 60vh;
-    }
     .step {
       margin-bottom: 50vh;
     }
@@ -566,9 +538,6 @@
   }
 
   @media (max-width: 768px) {
-    .scroll__text {
-      padding: 1rem;
-    }
     .step-content h2 {
       font-size: 2rem;
     }
@@ -597,9 +566,6 @@
     .step-description {
       font-size: 1rem;
     }
-    .scroll__text {
-      padding: 0.5rem;
-    }
     .step {
       padding: 1rem 0;
     }
@@ -607,5 +573,14 @@
       font-size: 0.9rem;
       margin: 0.75rem;
     }
+  }
+
+  .overlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 3px;
+    background-color: rgba(0,0,0,0); 
+    z-index: 9999; 
   }
 </style>
