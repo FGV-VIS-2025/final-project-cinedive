@@ -35,7 +35,8 @@
 			processData();
 			createHeatmap();
       applyModeSelection();
-		} catch (error) {
+		} 
+    catch (error) {
 			console.error('Erro ao carregar dados:', error);
 			loading = false;
 		}
@@ -43,6 +44,10 @@
 
   // Reage a mudanças do prop mode para atualizar seleção
 	$: if (!loading && heatmapData.length) {
+		applyModeSelection();
+	}
+
+	$: if (mode) {
 		applyModeSelection();
 	}
 
@@ -333,7 +338,7 @@
 	function applyModeSelection() {
 		if (!cellElements.size) return;
 
-    const scaleFactor = 1.2; // aumenta 20%
+    	const scaleFactor = 1.2; // aumenta 20%
 
 		// Remove todas as seleções visuais
 		cellElements.forEach(({cell, original}) => {
@@ -450,7 +455,7 @@
 
 <style>
 	.heatmap-container {
-		width: 75%;
+		width: 90%;
 		padding: 20px;
 		background: #a1a1a1;
 		border-radius: 8px;
