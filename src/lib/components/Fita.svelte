@@ -249,7 +249,7 @@
             })
             .on("click", () => {
               const steps = d3.selectAll('.step').nodes();
-              steps[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              steps[i+1]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
         // Añadir número de frame
