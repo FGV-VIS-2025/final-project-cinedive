@@ -32,7 +32,9 @@
 
 
 
-  function drawSvg() {
+  function drawSvg(step) {
+    const a = step
+    
     const svg = d3.select(svgEl)
       .attr("width", width)
       .attr("height", height);
@@ -127,7 +129,7 @@
             .attr("width", 84)   // largura
             .attr("height", 36)  // altura
             .attr("fill", colorframe)
-            .attr("stroke", i === current ? "#aa9900" : null)
+            .attr("stroke", i === get(currentStep) - 1 ? "#aa9900" : null)
             .on("click", () => {
               const steps = d3.selectAll('.step').nodes();
               steps[i]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -159,7 +161,7 @@
     drawSvg(); // chama uma vez com valor inicial de `current`
   });
 
-  $: drawSvg();
+  $: drawSvg($currentStep);
 
 
 

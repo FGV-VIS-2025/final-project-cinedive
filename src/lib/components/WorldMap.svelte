@@ -17,6 +17,11 @@
   let currentZoom = 1;
   let g;
 
+  const colorContries = "#9AA287"
+  const colorFitas = "#606878"
+  const colorWins = "#FAD432"
+  const colorNominates = "#7AF9D2"
+
   // preparando dados
 
   const bubbleData = d3.rollups(
@@ -97,8 +102,7 @@
       .enter()
       .append("path")
       .attr("d", d => pathGenerator(d) || "")
-      .attr("fill", "lightblue")
-      .attr("stroke", "#333");
+      .attr("fill", colorContries);
 
     
 
@@ -215,9 +219,9 @@
       .attr("y", d => d.y - d.height / 2)
       .attr("width", d => d.width)
       .attr("height", d => d.height)
-      .attr("fill", "steelblue")
+      .attr("fill", colorFitas)
       .attr("opacity", 0.7)
-      .attr("stroke", d => get(fitas).has(d.country) ? "gold" : "steelblue")
+      .attr("stroke", d => get(fitas).has(d.country) ? "gold" : null)
       .on("click", (event, d) => {
         fitas.toggle(d.country);  // seu método da store que adiciona/remove reativamente
         drawCountries(); // redesenha para atualizar a cor
@@ -231,9 +235,9 @@
       .attr("cx", d => d.x - d.width/4)
       .attr("cy", d => d.y + d.height/14)
       .attr("r", d => sizeScalecircle(d.wins))
-      .attr("fill", "orange")
+      .attr("fill", colorWins)
       .attr("opacity", 0.7)
-      .attr("stroke", "#222");
+      .attr("stroke", colorWins);
 
     g.selectAll("circle1")
     .data(preparedData2)
@@ -242,9 +246,58 @@
     .attr("cx", d => d.x + d.width/4)
     .attr("cy", d => d.y + d.height/14)
     .attr("r", d => sizeScalecircle(d.nominations))
-    .attr("fill", "green")
+    .attr("fill", colorNominates)
     .attr("opacity", 0.7)
-    .attr("stroke", "#222");
+    .attr("stroke", colorNominates);
+
+    g.selectAll("text.continent-label").remove(); // Remove textos anteriores
+
+    g.selectAll("text.continent-label")
+      .data(preparedData2)
+      .enter()
+      .append("text")
+      .attr("class", "continent-label")
+      .attr("x", d => d.x)
+      .attr("y", d => d.y - 5) // ligeiro ajuste vertical
+      .text(d => d.country)
+      .attr("text-anchor", "middle")
+      .attr("font-size", d => Math.max(d.height * 0.25))
+      .attr("fill", "white")
+      .attr("pointer-events", "none") // evita que interfira nos cliques nos retângulos
+      .each(function(d) {
+        const fontSize = Math.max(8, d.height * 0.2);
+        const maxWidth = d.width * 0.9; // margem de segurança
+        const words = d.country.split(/\s+/); // divide por espaço
+        const lineHeight = fontSize * 1.1;
+        let line = [];
+        let lines = [];
+        const tempText = d3.select(this);
+
+        for (let word of words) {
+          line.push(word);
+          tempText.text(line.join(" "));
+          if (tempText.node().getComputedTextLength() > maxWidth) {
+            line.pop();
+            lines.push(line.join(" "));
+            line = [word];
+          }
+        }
+        if (line.length) lines.push(line.join(" "));
+
+        tempText.text(null); // limpa o texto antes de adicionar tspans
+
+        lines.forEach((textLine, i) => {
+          tempText.append("tspan")
+            .text(textLine)
+            .attr("x", d.x)
+            .attr("dy", i === 0 ? 0 : lineHeight)
+            .attr("text-anchor", "middle")
+            .attr("x", d.x);
+        });
+
+        // centraliza verticalmente ajustando y inicial
+        tempText.attr("y", d.y - (lines.length - 1) * lineHeight / 2);
+      });
 
     
 
@@ -285,15 +338,15 @@
       .attr("y", d => d.y - d.height / 2)
       .attr("width", d => d.width)
       .attr("height", d => d.height)
-      .attr("fill", "steelblue")
-      .attr("opacity", 0.7)
+      .attr("fill", colorFitas)
+      .attr("opacity", 0.9)
       .attr("stroke", d => {
         const countriesInContinent = geoData.features
           .filter(f => f.properties.continent === d.continent)
           .map(f => f.properties.name);
 
         const allSelected = countriesInContinent.every(c => get(fitas).has(c));
-        return allSelected ? "gold" : "steelblue";
+        return allSelected ? "gold" : null;
       })
       .on("click", (event, d) => {
 
@@ -320,9 +373,9 @@
     .attr("cx", d => d.x - d.width/4)
     .attr("cy", d => d.y + d.height/14)
     .attr("r", d => sizeScalecircle(d.circle01))
-    .attr("fill", "orange")
+    .attr("fill", colorWins)
     .attr("opacity", 0.7)
-    .attr("stroke", "#222");
+    .attr("stroke", colorWins);
 
     g.selectAll("circle1")
     .data(preparedData)
@@ -331,9 +384,58 @@
     .attr("cx", d => d.x + d.width/4)
     .attr("cy", d => d.y + d.height/14)
     .attr("r", d => sizeScalecircle(d.circle02))
-    .attr("fill", "green")
+    .attr("fill", colorNominates)
     .attr("opacity", 0.7)
-    .attr("stroke", "#222");
+    .attr("stroke", colorNominates);
+
+    g.selectAll("text.continent-label").remove(); // Remove textos anteriores
+
+    g.selectAll("text.continent-label")
+      .data(preparedData)
+      .enter()
+      .append("text")
+      .attr("class", "continent-label")
+      .attr("x", d => d.x)
+      .attr("y", d => d.y - 5) // ligeiro ajuste vertical
+      .text(d => d.continent)
+      .attr("text-anchor", "middle")
+      .attr("font-size", d => Math.max(d.height * 0.25))
+      .attr("fill", "white")
+      .attr("pointer-events", "none") // evita que interfira nos cliques nos retângulos
+      .each(function(d) {
+        const fontSize = Math.max(8, d.height * 0.2);
+        const maxWidth = d.width * 0.9; // margem de segurança
+        const words = d.continent.split(/\s+/); // divide por espaço
+        const lineHeight = fontSize * 1.1;
+        let line = [];
+        let lines = [];
+        const tempText = d3.select(this);
+
+        for (let word of words) {
+          line.push(word);
+          tempText.text(line.join(" "));
+          if (tempText.node().getComputedTextLength() > maxWidth) {
+            line.pop();
+            lines.push(line.join(" "));
+            line = [word];
+          }
+        }
+        if (line.length) lines.push(line.join(" "));
+
+        tempText.text(null); // limpa o texto antes de adicionar tspans
+
+        lines.forEach((textLine, i) => {
+          tempText.append("tspan")
+            .text(textLine)
+            .attr("x", d.x)
+            .attr("dy", i === 0 ? 0 : lineHeight)
+            .attr("text-anchor", "middle")
+            .attr("x", d.x);
+        });
+
+        // centraliza verticalmente ajustando y inicial
+        tempText.attr("y", d.y - (lines.length - 1) * lineHeight / 2);
+      });
 
     console.log("Mapa com bolhas desenhado");
 

@@ -4,9 +4,10 @@
   import { browser } from '$app/environment';
   import FilmSearch from '$lib/charts/FilmSearch.svelte';
   import FilmNetwork from '$lib/charts/FilmNetwork.svelte';
-  import { loadMoviesLastMovies } from '$lib/utils/dataLoader.js';
+  import { loadMoviesLastMovies, getDataForFitas } from '$lib/utils/dataLoader.js';
   import Bubble from '$lib/charts/bubble.svelte';
-  import Fita from '../lib/components/Fita.svelte';
+  import Fita from '$lib/components/Fita.svelte';
+  import WorldMap from '$lib/components/WorldMap.svelte';
   import { currentStep } from '../store/step';
 
 
@@ -23,6 +24,23 @@
 
   // Cuando el usuario decide “ver el grafo completo”, activamos esta bandera
   let showGraphView = false;
+
+  let worldGeoJson;
+  let data_for_fitas;
+
+  onMount(async () => {
+    const res = await fetch(`/mapas/World.json`);
+    if (res.ok) {
+      worldGeoJson = await res.json();
+    } else {
+      console.error('Erro ao carregar world.json:', res.status);
+    }
+
+    data_for_fitas = await getDataForFitas()
+    console.log("Fitas carregadas:", data_for_fitas);
+  });
+
+
 
   // Objeto con detalles de la película seleccionada (tconst, primaryTitle, startYear)
   $: selectedMovieInfo = selectedMovie
@@ -41,7 +59,6 @@
             const stepNum = +entry.target.getAttribute('data-step');
             console.log('Step intersecting:', stepNum);
             currentStep.set(stepNum);
-            console.log($currentStep)
           }
         });
       },
@@ -51,6 +68,11 @@
     );
 
     steps.forEach((step) => observer.observe(step));
+  });
+
+  
+  onDestroy(() => {
+    if (observer) observer.disconnect();
   });
 
 
@@ -208,18 +230,24 @@
         <!-- Step 2: Instrucción para pasar al grafo -->
         <div class="step" data-step="2">
           <div class="step-content">
+            
             <h2>Step 2: Explore the connections</h2>
+            <div>
+              {#if worldGeoJson && data_for_fitas}
+                <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
+              {/if}
+            </div>
             <p class="step-description">
               Once you've chosen a film, you'll see an option to open the full network graph in a new view.
             </p>
-            {#if !selectedMovie}
+            <!-- {#if !selectedMovie}
               <div class="warning-message">
                 <p>You must first select a movie in Step 1</p>
                 <button class="back-btn" on:click={() => goToStep(0)}>
                   Return to Step 1
                 </button>
               </div>
-            {/if}
+            {/if} -->
 
             {#if selectedMovie}
               <div class="open-graph-note">
