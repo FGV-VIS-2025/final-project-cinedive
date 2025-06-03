@@ -7,6 +7,7 @@
   import { loadMoviesLastMovies } from '$lib/utils/dataLoader.js';
   import Bubble from '$lib/charts/bubble.svelte';
   import Fita from '../lib/components/Fita.svelte';
+  import { currentStep } from '../store/step';
 
 
   let current = 0;
@@ -27,6 +28,31 @@
   $: selectedMovieInfo = selectedMovie
     ? allMovies.find(m => m.tconst === selectedMovie)
     : null;
+
+  let observer;
+
+  onMount(() => {
+    const steps = document.querySelectorAll('.step');
+
+    observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const stepNum = +entry.target.getAttribute('data-step');
+            console.log('Step intersecting:', stepNum);
+            currentStep.set(stepNum);
+            console.log($currentStep)
+          }
+        });
+      },
+      {
+        threshold: 0.6
+      }
+    );
+
+    steps.forEach((step) => observer.observe(step));
+  });
+
 
   // Al montar, cargamos la lista de películas y configuramos scrollama
   onMount(async () => {
@@ -62,6 +88,7 @@
       })
       .onStepEnter(({ index }) => {
         current = index + 1;
+        currentStep.set(current)
       });
 
     handleResize = () => {
@@ -142,6 +169,11 @@
         </div>
       </div>
     </section>
+
+    <!-- Colocando a fita feia -->
+    <div class="overlay">
+      <Fita></Fita>
+    </div> 
 
     <!-- Main Content con scrollama -->
     <div class="scroll-layout">
@@ -607,5 +639,14 @@
       font-size: 0.9rem;
       margin: 0.75rem;
     }
+  }
+
+  .overlay {
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 3px;
+    background-color: rgba(0,0,0,0); 
+    z-index: 9999; 
   }
 </style>
