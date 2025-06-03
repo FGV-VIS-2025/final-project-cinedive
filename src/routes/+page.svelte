@@ -10,6 +10,8 @@
   import Heatmap from '$lib/charts/heatmap.svelte';
   import WorldMap from '$lib/components/WorldMap.svelte';
   import { currentStep } from '../store/step';
+  import { base } from '$app/paths';
+
 
   let current = 0;
   let scroller;
@@ -30,7 +32,7 @@
   let heatmapMode = 'exploration';
 
   onMount(async () => {
-    const res = await fetch(`/mapas/World.json`);
+    const res = await fetch(`${base}/mapas/World.json`);
     if (res.ok) {
       worldGeoJson = await res.json();
     } else {
