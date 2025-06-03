@@ -1,7 +1,7 @@
 <script>
   import { onMount, tick } from 'svelte';
   import * as d3 from 'd3';
-  import { fitas } from '../store/fitas.js';
+  import { fitas } from '../../store/fitas';
   import { get } from 'svelte/store';
 
   export let width = 800;
