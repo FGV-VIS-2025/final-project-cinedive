@@ -154,20 +154,23 @@
      ======================== -->
   <div class="step-container">
     <!-- Intro Section -->
-    <section class="intro-section">
-      <div class="intro-content">
-        <h1>Welcome to CineDive!</h1>
-        <p class="intro-text">
-          An interactive journey through cinematic history: discover how Oscar-nominated and winning
-          films are interwoven via actors, directors, and collaborators.
-        </p>
-        <div class="scroll-indicator">
-          <span>Scroll to start your exploration</span>
-          <div class="arrow-down"></div>
+    <div class= "step", data-step="0">
+      <section class="intro-section">
+        <div class="intro-content">
+          <h1>Welcome to CineDive!</h1>
+          <p class="intro-text">
+            An interactive journey through cinematic history: discover how Oscar-nominated and winning
+            films are interwoven via actors, directors, and collaborators.
+          </p>
+          <div class="scroll-indicator">
+            <span>Scroll to start your exploration</span>
+            <div class="arrow-down"></div>
+          </div>
         </div>
-      </div>
-    </section>
-
+      </section>
+  
+    </div>
+    
     <!-- Fita decorativa en overlay -->
     <div class="overlay">
       <Fita />

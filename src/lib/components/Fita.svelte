@@ -219,7 +219,7 @@
 
     // Frames de la película
     for (let i = 0; i < howmany; i++){
-        const isActive = i === get(currentStep) - 1;
+        const isActive = i === get(currentStep) -1;
         
         svg.append("rect")
             .attr("class", "frame")
