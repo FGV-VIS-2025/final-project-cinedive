@@ -83,7 +83,7 @@ export async function loadMoviesFullData() {
 		return cachedMoviesData;
 	}
 
-	const data = await tsv(`${base}/data/title_oscar.tsv`, row => ({
+	const data = await tsv(`${base}/data/title_oscar_con_country.tsv`, row => ({
 		...row,
 		startYear: +row.startYear,
 		runtimeMinutes: +row.runtimeMinutes,
@@ -91,7 +91,8 @@ export async function loadMoviesFullData() {
 		numVotes: +row.numVotes,
 		oscarNominations: +row.oscarNominations,
 		oscarWins: +row.oscarWins,
-		genres: row.genres ? row.genres.split(',') : []
+		genres: row.genres ? row.genres.split(',') : [],
+		country_origin: row.country_origin ? row.country_origin.split(',').map(d => d.trim()) : []
 	}));
 
 	console.log('Loaded movies data:', data.length, 'rows');

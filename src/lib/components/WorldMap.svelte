@@ -27,9 +27,9 @@
   const bubbleData = d3.rollups(
     data,
     group => ({
-      nominations: d3.sum(group, d => d.nomination || 0),
-      wins: d3.sum(group, d => d.oscar || 0),
-      rating: d3.mean(group, d => d.rating_imdb)
+      nominations: d3.sum(group, d => d.oscarNominations || 0),
+      wins: d3.sum(group, d => d.oscarWins || 0),
+      rating: d3.mean(group, d => d.averageRating)
     }),
     d => d.country_origin[0] // ajuste conforme o nome da coluna que indica o país sovereignt
   ).map(([country, values]) => ({
@@ -453,7 +453,9 @@
 
   // Redesenha no mount ou se geoData mudar
   onMount(draw);
-  $: geoData && data && draw();
+  $: if (geoData && data) {
+    draw();
+  }
 </script>
 
 <svg bind:this={svgEl} {width} {height} />
