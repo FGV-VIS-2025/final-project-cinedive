@@ -4,11 +4,13 @@
   import { browser } from '$app/environment';
   import FilmSearch from '$lib/charts/FilmSearch.svelte';
   import FilmNetwork from '$lib/charts/FilmNetwork.svelte';
-  import { loadMoviesLastMovies, getDataForFitas } from '$lib/utils/dataLoader.js';
+  import { loadMoviesLastMovies, getDataForFitas, loadMoviesFullData } from '$lib/utils/dataLoader.js';
   import Bubble from '$lib/charts/bubble.svelte';
   import Fita from '$lib/components/Fita.svelte';
   import Heatmap from '$lib/charts/heatmap.svelte';
   import WorldMap from '$lib/components/WorldMap.svelte';
+  import TopMovies from '../lib/charts/TopMovies.svelte';
+  import Relogio from '../lib/charts/relogio.svelte';
   import { currentStep } from '../store/step';
   import { base } from '$app/paths';
 
@@ -29,6 +31,7 @@
 
   let worldGeoJson;
   let data_for_fitas;
+  let GlobalData;
   let heatmapMode = 'exploration';
 
   onMount(async () => {
@@ -41,6 +44,9 @@
 
     data_for_fitas = await getDataForFitas();
     console.log("Fitas cargadas:", data_for_fitas);
+
+    GlobalData = await loadMoviesFullData();
+    console.log("GlobalData cargada:", GlobalData);
   });
 
   // Objeto con detalles de la película seleccionada (tconst, primaryTitle, startYear)
@@ -245,8 +251,8 @@
         </p>
         <div class="horizontal-layout">
           <div class="map-wrapper">
-            {#if worldGeoJson && data_for_fitas}
-              <WorldMap geoData={worldGeoJson} data={data_for_fitas} />
+            {#if worldGeoJson && GlobalData}
+              <WorldMap geoData={worldGeoJson} data={GlobalData} />
             {/if}
           </div>
           <div class="step-info">
@@ -304,6 +310,63 @@
             Top Nominations
           </label>
         </div>
+      </div>
+    </div>
+
+    <!-- ===================================
+         Step 4: Oscar Wins vs Nominations Heatmap
+         =================================== -->
+    <div class="step" data-step="4">
+      <div class="step-content">
+        <h2>Step 4: Oscar Wins vs Nominations Heatmap</h2>
+        <!-- Narración Scrollytelling en inglés -->
+        <p class="narrative">
+          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
+          visualize how nominations and wins correlate: each cell groups films with similar numbers of
+          nominations and victories, revealing patterns in cinematic recognition.
+        </p>
+        {#if GlobalData}
+          <TopMovies data={GlobalData} />
+        {/if}
+        
+
+      </div>
+    </div>
+
+    <!-- ===================================
+         Step 5: Oscar Wins vs Nominations Heatmap
+         =================================== -->
+    <div class="step" data-step="5">
+      <div class="step-content">
+        <h2>Step 5: Oscar Wins vs Nominations Heatmap</h2>
+        <!-- Narración Scrollytelling en inglés -->
+        <p class="narrative">
+          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
+          visualize how nominations and wins correlate: each cell groups films with similar numbers of
+          nominations and victories, revealing patterns in cinematic recognition.
+        </p>
+
+        {#if GlobalData}
+          <Relogio data={GlobalData} width={500} />
+        {/if}
+      </div>
+    </div>
+
+    <!-- ===================================
+         Step 6: Oscar Wins vs Nominations Heatmap
+         =================================== -->
+    <div class="step" data-step="6">
+      <div class="step-content">
+        <h2>Step 6: Gafico apenas de artistas</h2>
+        <!-- Narración Scrollytelling en inglés -->
+        <p class="narrative">
+          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
+          visualize how nominations and wins correlate: each cell groups films with similar numbers of
+          nominations and victories, revealing patterns in cinematic recognition.
+        </p>
+
+        
+
       </div>
     </div>
 
