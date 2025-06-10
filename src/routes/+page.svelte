@@ -35,6 +35,12 @@
   let heatmapMode = 'exploration';
 
   onMount(async () => {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 100) {  // Ajusta el valor según el momento que desees
+        showFita = true;
+      }
+    });
+
     const res = await fetch(`${base}/mapas/World.json`);
     if (res.ok) {
       worldGeoJson = await res.json();
@@ -364,9 +370,6 @@
           visualize how nominations and wins correlate: each cell groups films with similar numbers of
           nominations and victories, revealing patterns in cinematic recognition.
         </p>
-
-        
-
       </div>
     </div>
 
@@ -404,10 +407,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #b4b4b4 0%, #000000 100%);
+    background: #ffffff;
     color: rgb(255, 222, 78);
     text-align: center;
     position: relative;
+    z-index: 10; 
+    margin-bottom: 80px; 
   }
 
   .intro-content h1 {
@@ -722,11 +727,11 @@
   }
 
   .overlay {
-    position: fixed; 
+    position: absolute; 
     top: 0;
     left: 0;
     width: 3px;
     background-color: rgba(0,0,0,0); 
-    z-index: 9999; 
+    z-index: 1; 
   }
 </style>

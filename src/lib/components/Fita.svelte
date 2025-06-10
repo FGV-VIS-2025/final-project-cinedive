@@ -5,7 +5,7 @@
   import { derived } from 'svelte/store';
   import { get } from 'svelte/store';
 
-  export let howmany = 3;
+  export let howmany = 6;
   export let width = 220;
   export let height = 1000;
 
@@ -40,23 +40,7 @@
     const defs = svg.append("defs");
 
     // Gradiente para el proyector
-    const projectorGradient = defs.append("linearGradient")
-      .attr("id", "projectorGradient")
-      .attr("x1", "0%")
-      .attr("y1", "0%")
-      .attr("x2", "100%")
-      .attr("y2", "100%");
-
-    projectorGradient.append("stop")
-      .attr("offset", "0%")
-      .attr("stop-color", "#40407a")
-      .attr("stop-opacity", 1);
-
-    projectorGradient.append("stop")
-      .attr("offset", "100%")
-      .attr("stop-color", "#2c2c54")
-      .attr("stop-opacity", 1);
-
+    
     // Gradiente para la película
     const filmGradient = defs.append("linearGradient")
       .attr("id", "filmGradient")
@@ -81,30 +65,7 @@
       .attr("stop-opacity", 1);
 
     // Filtro de sombra
-    const dropShadow = defs.append("filter")
-      .attr("id", "dropshadow")
-      .attr("x", "-50%")
-      .attr("y", "-50%")
-      .attr("width", "200%")
-      .attr("height", "200%");
-
-    dropShadow.append("feGaussianBlur")
-      .attr("in", "SourceAlpha")
-      .attr("stdDeviation", "3");
-
-    dropShadow.append("feOffset")
-      .attr("dx", "2")
-      .attr("dy", "4")
-      .attr("result", "offset");
-
-    dropShadow.append("feComponentTransfer")
-      .append("feFuncA")
-      .attr("type", "linear")
-      .attr("slope", "0.3");
-
-    const feMerge = dropShadow.append("feMerge");
-    feMerge.append("feMergeNode").attr("in", "offset");
-    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+    
 
     // Máscara para los agujeros de la película
     const mask = defs.append("mask")
@@ -135,74 +96,7 @@
     }
 
     // Dibujando el cuerpo principal del proyector
-    svg.append("rect")
-      .attr("class", "projector-body")
-      .attr("x", 15)
-      .attr("y", 55)
-      .attr("width", 165)
-      .attr("height", 75)
-      .attr("rx", 12)
-      .attr("ry", 12)
-      .attr("fill", "url(#projectorGradient)")
-      .attr("stroke", projectorAccent)
-      .attr("stroke-width", 2)
-      .attr("filter", "url(#dropshadow)");
-
-    // Lente del proyector
-    svg.append("path")
-      .attr("class", "projector-lens")
-      .attr("d", line([
-          [165, 85],
-          [165, 105],
-          [205, 155],
-          [205, 25],
-          [165, 85]
-      ]))
-      .attr("fill", "url(#projectorGradient)")
-      .attr("stroke", projectorAccent)
-      .attr("stroke-width", 2)
-      .attr("filter", "url(#dropshadow)");
-
-    // Bobinas del proyector
-    svg.append("circle")
-      .attr("class", "projector-reel")
-      .attr("cx", 25)
-      .attr("cy", 55)
-      .attr("r", 32)
-      .attr("fill", "url(#projectorGradient)")
-      .attr("stroke", projectorAccent)
-      .attr("stroke-width", 2)
-      .attr("filter", "url(#dropshadow)");
-
-    svg.append("circle")
-      .attr("class", "projector-reel")
-      .attr("cx", 95)
-      .attr("cy", 40)
-      .attr("r", 32)
-      .attr("fill", "url(#projectorGradient)")
-      .attr("stroke", projectorAccent)
-      .attr("stroke-width", 2)
-      .attr("filter", "url(#dropshadow)");
-
-    // Detalles de las bobinas
-    svg.append("circle")
-      .attr("cx", 25)
-      .attr("cy", 55)
-      .attr("r", 15)
-      .attr("fill", "none")
-      .attr("stroke", projectorAccent)
-      .attr("stroke-width", 1)
-      .attr("opacity", 0.7);
-
-    svg.append("circle")
-      .attr("cx", 95)
-      .attr("cy", 40)
-      .attr("r", 15)
-      .attr("fill", "none")
-      .attr("stroke", projectorAccent)
-      .attr("stroke-width", 1)
-      .attr("opacity", 0.7);
-
+   
     // Película principal
     svg.append("rect")
       .attr("class", "film-strip")
@@ -289,32 +183,7 @@
         .attr("stroke-width", 1);
     }
 
-    // Efectos de luz del proyector
-    const lightBeam = svg.append("g")
-      .attr("class", "light-beam")
-      .attr("opacity", 0.3);
-
-    lightBeam.append("polygon")
-      .attr("points", "180,85 180,95 220,140 220,40")
-      .attr("fill", "url(#lightGradient)");
-
-    // Gradiente para el haz de luz
-    const lightGradient = defs.append("linearGradient")
-      .attr("id", "lightGradient")
-      .attr("x1", "0%")
-      .attr("y1", "0%")
-      .attr("x2", "100%")
-      .attr("y2", "0%");
-
-    lightGradient.append("stop")
-      .attr("offset", "0%")
-      .attr("stop-color", "#ffd700")
-      .attr("stop-opacity", 0.8);
-
-    lightGradient.append("stop")
-      .attr("offset", "100%")
-      .attr("stop-color", "#ffffff")
-      .attr("stop-opacity", 0.1);
+    
   };
 
   onMount(() => {
