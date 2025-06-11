@@ -59,7 +59,6 @@
       isLoading = true;
       const [graph, movies] = await Promise.all([loadGraph(), loadMoviesFullData()]);
 
-      // Unimos la información de movies con cada nodo del grafo
       const movieMap = new Map(movies.map(m => [m.tconst, m]));
       graph.nodes = graph.nodes.map(node => {
         const extra = movieMap.get(node.id);
@@ -781,6 +780,7 @@
             <div class="legend-symbol circle oscar"></div>
             <span>Oscar Winner</span>
           </div>
+          <div class="legend-separator"></div>
           <div class="legend-item">
             <div class="legend-line director"></div>
             <span>Director</span>
@@ -1123,19 +1123,29 @@
   .legend {
     display: flex;
     justify-content: center;
-    gap: 24px;
+    gap: 16px; /* Reducir de 24px a 16px */
     padding: 16px 24px;
     background: #ffffff;
     border-top: 1px solid #ddd;
     flex-wrap: wrap;
+    flex-shrink: 0;
+    min-height: 125px;
   }
 
+  /* Reducir el gap entre símbolo/línea y texto en cada item */
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px; /* Reducir de 8px a 6px */
     font-size: 12px;
     color: #555;
+  }
+
+  /* Opcional: Hacer las líneas un poco más largas para mejor visibilidad */
+  .legend-line {
+    width: 16px; /* Reducir de 20px a 16px */
+    height: 2px;
+    border-radius: 1px;
   }
 
   .legend-symbol {
@@ -1167,14 +1177,10 @@
       2% 35%,
       39% 35%
     );
+    color: #222;
     border-radius: 0;
     border: 1.5px solid #333;
-  }
-
-  .legend-line {
-    width: 20px;
-    height: 2px;
-    border-radius: 1px;
+    flex-shrink: 0; /* Evitar que se contraiga */
   }
 
   .legend-line.director {
@@ -1239,7 +1245,7 @@
     }
 
     .legend {
-      gap: 16px;
+      gap: 8px;
     }
   }
 
@@ -1258,11 +1264,11 @@
 
     .legend {
       padding: 12px 16px;
-      gap: 12px;
+      gap: 6px;
     }
 
     .legend-item {
-      font-size: 11px;
+      font-size:15px;
     }
   }
 </style>

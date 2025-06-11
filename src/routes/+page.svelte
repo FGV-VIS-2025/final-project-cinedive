@@ -26,7 +26,6 @@
   let isLoading = true;
   let error = null;
 
-  // Cuando el usuario decide “ver el grafo completo”, activamos esta bandera
   let showGraphView = false;
 
   let worldGeoJson;
@@ -120,7 +119,7 @@
   });
 
   // Filtrado reactivo del autocomplete
-  $: if (searchQuery.trim().length < 3) {
+  $: if (searchQuery.trim().length < 2) {
     filteredMovies = allMovies;
   } else {
     const q = searchQuery.toLowerCase().trim();
@@ -221,7 +220,7 @@
               bind:query={searchQuery}
               options={filteredMovies}
               on:select={onMovieSelect}
-              placeholder="Type at least 3 letters..."
+              placeholder="Type at least 2 letters..."
             />
 
             {#if selectedMovieInfo}
