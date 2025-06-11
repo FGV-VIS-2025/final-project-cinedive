@@ -10,8 +10,9 @@
   let svgElement;
   let tooltipElement;
   let barChartElement;
-  let containerElement;
-  let graphContainerElement;
+  let graphContainerElement; // Se liga al div de grafo
+  // Se puede eliminar containerElement o reservarlo para otro uso; no debe usarse para el grafo
+  let outerContainerElement;
 
   export let movieId;
   const dispatch = createEventDispatcher();
@@ -39,7 +40,7 @@
   let currentGraph = { nodes: [], links: [] };
   let resizeObserver = null;
 
-  // Variables para controlar el tamaño consistente de nodos
+  // Escala de tamaño global consistente
   let globalSizeScale = null;
 
   onMount(async () => {
@@ -59,6 +60,7 @@
       isLoading = true;
       const [graph, movies] = await Promise.all([loadGraph(), loadMoviesFullData()]);
 
+      // Combinar metadatos de películas en nodos
       const movieMap = new Map(movies.map(m => [m.tconst, m]));
       graph.nodes = graph.nodes.map(node => {
         const extra = movieMap.get(node.id);
@@ -66,7 +68,7 @@
       });
       graphData = graph;
 
-      // Determinamos rangos de años basados en nodos de tipo "movie"
+      // Determinar rangos de años basados en nodos de tipo "movie"
       const movieYears = graph.nodes
         .filter(n => n.type === 'movie' && n.year && !isNaN(+n.year))
         .map(n => +n.year);
@@ -75,7 +77,7 @@
         filters = { ...filters, minYear: minY, maxYear: maxY, startYear: minY, endYear: maxY };
       }
 
-      // Determinamos rangos para todos los filtros
+      // Determinar rangos para los demás filtros
       const movieNodes = graph.nodes.filter(n => n.type === 'movie');
       if (movieNodes.length) {
         const ratings = movieNodes.map(n => +n.averageRating || 0);
@@ -93,7 +95,7 @@
         };
       }
 
-      // Extraemos lista única de géneros
+      // Extraer lista única de géneros
       const genresSet = new Set();
       movieNodes.forEach(n => {
         if (n.genres && Array.isArray(n.genres)) {
@@ -102,11 +104,10 @@
       });
       allGenres = Array.from(genresSet).sort();
 
-      // Creamos escala de tamaño global consistente
+      // Crear escala de tamaño global
       const allRatings = movieNodes
         .filter(n => n.averageRating && !isNaN(+n.averageRating))
         .map(n => +n.averageRating);
-      
       globalSizeScale = d3
         .scaleLinear()
         .domain(allRatings.length ? d3.extent(allRatings) : [0, 10])
@@ -115,6 +116,7 @@
       loadedGraph = true;
       isLoading = false;
 
+      // Si ya tenemos movieId, dibujar subgrafo; si no, opcionalmente se podría dibujar todo o mostrar mensaje
       if (movieId) {
         updateVisualization();
       }
@@ -150,6 +152,7 @@
   }
 
   function buildFilteredSubgraph() {
+    if (!graphData || !movieId) return { nodes: [], links: [] };
     const rootNode = graphData.nodes.find(d => d.id === movieId);
     if (!rootNode) {
       console.warn(`Root node not found: ${movieId}`);
@@ -173,7 +176,7 @@
         roles: link.roles || []
       }));
 
-    // Construir lista de adyacencia
+    // Construir adyacencia
     const adjacency = new Map();
     componentNodes.forEach(n => adjacency.set(n.id, []));
     componentLinks.forEach(link => {
@@ -202,11 +205,11 @@
       subgraphIds.has(link.source) && subgraphIds.has(link.target)
     );
 
-    // Filtrar películas - EXCEPTO el nodo de origen
+    // Filtrar películas excepto origen
     const filteredMovieIds = new Set(
       subNodes
         .filter(n => n.type === 'movie')
-        .filter(n => n.id === movieId || passesFilters(n)) // Siempre incluir el nodo de origen
+        .filter(n => n.id === movieId || passesFilters(n))
         .map(n => n.id)
     );
 
@@ -233,12 +236,9 @@
       finalIds.add(link.source);
       finalIds.add(link.target);
     });
-    
-    // Asegurar que el nodo de origen siempre esté incluido
     finalIds.add(movieId);
-    
-    const finalNodes = subNodes.filter(n => finalIds.has(n.id));
 
+    const finalNodes = subNodes.filter(n => finalIds.has(n.id));
     return { nodes: finalNodes, links: validLinks };
   }
 
@@ -247,18 +247,15 @@
     if (year !== null && (year < filters.startYear || year > filters.endYear)) {
       return false;
     }
-
     if (filters.selectedGenres.size > 0) {
       if (!node.genres || !Array.isArray(node.genres)) return false;
       const hasGenre = node.genres.some(g => filters.selectedGenres.has(g));
       if (!hasGenre) return false;
     }
-
     const rating = node.averageRating ? +node.averageRating : 0;
     const votes = node.numVotes ? +node.numVotes : 0;
     const oscarNom = node.oscarNominations ? +node.oscarNominations : 0;
     const oscarWin = node.oscarWins ? +node.oscarWins : 0;
-
     return (
       rating >= filters.ratingMin &&
       rating <= filters.ratingMax &&
@@ -285,21 +282,19 @@
       .attr('height', height)
       .attr('viewBox', `0 0 ${width} ${height}`);
 
-    // Definir clip path para contener nodos dentro del SVG
+    // Definir clip path
     svg.append('defs')
-       .append('clipPath')
-       .attr('id', 'graph-clip')
-       .append('rect')
-       .attr('width', width)
-       .attr('height', height);
+      .append('clipPath')
+      .attr('id', 'graph-clip')
+      .append('rect')
+      .attr('width', width)
+      .attr('height', height);
 
-    // Configurar simulación con fuerzas mejoradas
-    simulation = d3
-      .forceSimulation(graph.nodes)
+    // Configurar simulación
+    simulation = d3.forceSimulation(graph.nodes)
       .force(
         'link',
-        d3
-          .forceLink(graph.links)
+        d3.forceLink(graph.links)
           .id(d => d.id)
           .distance(d => {
             const srcNode = graph.nodes.find(n => n.id === (d.source.id || d.source));
@@ -308,10 +303,7 @@
           })
           .strength(0.8)
       )
-      .force(
-        'charge',
-        d3.forceManyBody().strength(d => (d.type === 'movie' ? -300 : -150))
-      )
+      .force('charge', d3.forceManyBody().strength(d => (d.type === 'movie' ? -300 : -150)))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide().radius(d => getEffectiveRadius(d) + 8));
 
@@ -326,8 +318,7 @@
 
     // Dibujar enlaces
     const linkGroup = svg.append('g').attr('class', 'links').attr('clip-path', 'url(#graph-clip)');
-    const links = linkGroup
-      .selectAll('line')
+    const links = linkGroup.selectAll('line')
       .data(graph.links)
       .join('line')
       .attr('class', 'link')
@@ -337,22 +328,19 @@
 
     // Dibujar nodos
     const nodeGroup = svg.append('g').attr('class', 'nodes').attr('clip-path', 'url(#graph-clip)');
-    const nodes = nodeGroup
-      .selectAll('g')
+    const nodes = nodeGroup.selectAll('g')
       .data(graph.nodes)
       .join('g')
       .attr('class', 'node')
       .call(
-        d3
-          .drag()
+        d3.drag()
           .on('start', dragStarted)
           .on('drag', dragged)
           .on('end', dragEnded)
       );
 
     // Formas de nodos
-    nodes
-      .append('path')
+    nodes.append('path')
       .attr('d', d => {
         const radius = getEffectiveRadius(d);
         const symbolType = d.type === 'person' ? d3.symbolStar : d3.symbolCircle;
@@ -371,74 +359,82 @@
       )
       .attr('stroke-width', d => (d.id === movieId ? 3 : 1.5));
 
-    // Etiquetas para película principal y ganadoras de Oscar
-    nodes
-      .filter(
-        d => d.id === movieId || (d.type === 'movie' && d.oscarWins && +d.oscarWins > 0)
-      )
-      .append('text')
-      .text(d => {
-        const title = d.title || d.primaryTitle || d.id;
-        return title.length > 15 ? title.substring(0, 15) + '...' : title;
-      })
-      .attr('text-anchor', 'middle')
-      .attr('dy', d => getEffectiveRadius(d) + 18)
-      .attr('font-size', '11px')
-      .attr('fill', '#333')
-      .attr('font-weight', d => (d.id === movieId ? 'bold' : 'normal'))
-      .attr('pointer-events', 'none');
+    // Etiquetas para nodo origen y ganadores de Oscar
+    nodes.filter(
+      d => d.id === movieId || (d.type === 'movie' && d.oscarWins && +d.oscarWins > 0)
+    )
+    .append('text')
+    .text(d => {
+      const title = d.title || d.primaryTitle || d.id;
+      return title.length > 15 ? title.substring(0, 15) + '...' : title;
+    })
+    .attr('text-anchor', 'middle')
+    .attr('dy', d => getEffectiveRadius(d) + 18)
+    .attr('font-size', '11px')
+    .attr('fill', '#333')
+    .attr('font-weight', d => (d.id === movieId ? 'bold' : 'normal'))
+    .attr('pointer-events', 'none');
 
     // Configurar tooltip
     const tooltip = d3.select(tooltipElement);
 
     nodes
-    .on('mouseover', (event, d) => {
-      if (d.type !== 'movie') return;
+      .on('mouseover', (event, d) => {
+        let htmlContent = '';
+        if (d.type !== 'movie') {
+          const name = d.name || d.primaryName || 'Unknown';
+          htmlContent = `<div class="title">${name}</div>`;
+        } else {
+          const title = d.title || d.primaryTitle || 'Unknown';
+          const year = d.year || 'N/A';
+          const rating = d.averageRating ? (+d.averageRating).toFixed(1) : 'N/A';
+          const votes = d.numVotes ? (+d.numVotes).toLocaleString() : 'N/A';
+          const genres =
+            d.genres && Array.isArray(d.genres) ? d.genres.join(', ') : 'N/A';
+          const oscarNom = d.oscarNominations != null ? d.oscarNominations : 0;
+          const oscarWin = d.oscarWins != null ? d.oscarWins : 0;
 
-      const title = d.title || d.primaryTitle || 'Unknown';
-      const year = d.year || 'N/A';
-      const rating = d.averageRating ? (+d.averageRating).toFixed(1) : 'N/A';
-      const votes = d.numVotes ? (+d.numVotes).toLocaleString() : 'N/A';
-      const genres =
-        d.genres && Array.isArray(d.genres) ? d.genres.join(', ') : 'N/A';
-      const oscarNom = d.oscarNominations != null ? d.oscarNominations : 0;
-      const oscarWin = d.oscarWins != null ? d.oscarWins : 0;
+          htmlContent = `
+            <div class="title">${title} (${year})</div>
+            <div>Rating: ${rating}/10</div>
+            <div>Votes: ${votes}</div>
+            <div>Genres: ${genres}</div>
+            <div>Oscar Nominations: ${oscarNom}</div>
+            <div>Oscar Wins: ${oscarWin}</div>
+          `;
+        }
 
-      const htmlContent = `
-        <div class="title">${title} (${year})</div>
-        <div>Rating: ${rating}/10</div>
-        <div>Votes: ${votes}</div>
-        <div>Genres: ${genres}</div>
-        <div>Oscar Nominations: ${oscarNom}</div>
-        <div>Oscar Wins: ${oscarWin}</div>
-      `;
+        // Obtener coordenadas relativas con graphContainerElement
+        if (graphContainerElement) {
+          const rect = graphContainerElement.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
 
-      // Obtener coordenadas relativas al contenedor del grafo
-      const rect = graphContainerElement.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-
-      tooltip
-        .html(htmlContent)
-        .style('display', 'block')
-        .style('left', `${x + 10}px`)    
-        .style('top', `${y - 10}px`);  
+          tooltip
+            .html(htmlContent)
+            .style('display', 'block')
+            .style('left', `${x + 10}px`)
+            .style('top', `${y - 10}px`);
+        }
       })
       .on('mousemove', event => {
-        // Obtener coordenadas relativas al contenedor del grafo
-        const rect = graphContainerElement.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        
-        tooltip
-          .style('left', `${x + 10}px`)    
-          .style('top', `${y - 10}px`);   
+        if (graphContainerElement) {
+          const rect = graphContainerElement.getBoundingClientRect();
+          const x = event.clientX - rect.left;
+          const y = event.clientY - rect.top;
+          d3.select(tooltipElement)
+            .style('left', `${x + 10}px`)
+            .style('top', `${y - 10}px`);
+        }
       })
       .on('mouseout', () => {
-        tooltip.style('display', 'none');
-    });
+        d3.select(tooltipElement).style('display', 'none');
+      })
+      .on('click', (event, d) => {
+        dispatch('selectNode', d);
+      });
 
-    // Actualizar posiciones con restricciones mejoradas
+    // Actualizar posiciones con límites
     simulation.on('tick', () => {
       graph.nodes.forEach(d => {
         const r = getEffectiveRadius(d);
@@ -497,9 +493,7 @@
       .domain([0, d3.max(data, d => d.count)])
       .range([chartHeight, 0]);
 
-    const g = svg
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+    const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
     // Barras
     g.selectAll('rect')
@@ -512,7 +506,7 @@
       .attr('fill', '#69b3a2')
       .attr('rx', 2);
 
-    // Ejes con menos ticks para mejor legibilidad
+    // Ejes con menos ticks
     const tickCount = Math.min(data.length, 6);
     g.append('g')
       .attr('transform', `translate(0,${chartHeight})`)
@@ -546,7 +540,7 @@
   }
 
   function dragStarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
+    if (!event.active && simulation) simulation.alphaTarget(0.3).restart();
     d.fx = d.x;
     d.fy = d.y;
   }
@@ -555,7 +549,7 @@
     d.fy = event.y;
   }
   function dragEnded(event, d) {
-    if (!event.active) simulation.alphaTarget(0);
+    if (!event.active && simulation) simulation.alphaTarget(0);
     d.fx = null;
     d.fy = null;
   }
@@ -573,8 +567,8 @@
       startYear: filters.minYear,
       endYear: filters.maxYear,
       selectedGenres: new Set(),
-      ratingMin: 0,
-      ratingMax: 10,
+      ratingMin: filters.ratingMin, // opcional: mantener los límites original?
+      ratingMax: filters.ratingMax,
       votesMin: 0,
       oscarsNomMin: 0,
       oscarsWinMin: 0
@@ -604,7 +598,7 @@
   }
 </script>
 
-<div class="film-network-container" bind:this={containerElement}>
+<div class="film-network-container" bind:this={outerContainerElement}>
   {#if isLoading}
     <div class="loading-state">
       <div class="spinner"></div>
@@ -623,8 +617,8 @@
           <h3>Filters</h3>
           <button class="reset-btn" on:click={resetFilters}>Reset</button>
         </div>
-
-        <!-- Filtro de años -->
+        <!-- ... filtros idénticos al original ... -->
+        <!-- Years -->
         <div class="filter-section">
           <label class="filter-label">Years: {filters.startYear} – {filters.endYear}</label>
           <div class="range-container">
@@ -660,7 +654,6 @@
             <span>{filters.maxYear}</span>
           </div>
         </div>
-
         <!-- Rating -->
         <div class="filter-section">
           <label class="filter-label">Rating: {filters.ratingMin} – {filters.ratingMax}</label>
@@ -699,7 +692,6 @@
             <span>10</span>
           </div>
         </div>
-
         <!-- Otros filtros -->
         <div class="filter-section">
           <label class="filter-label">Min Votes</label>
@@ -711,7 +703,6 @@
             on:input={() => { filters = { ...filters }; }}
           />
         </div>
-
         <div class="filter-section">
           <label class="filter-label">Min Oscar Nominations</label>
           <input
@@ -722,7 +713,6 @@
             on:input={() => { filters = { ...filters }; }}
           />
         </div>
-
         <div class="filter-section">
           <label class="filter-label">Min Oscar Wins</label>
           <input
@@ -733,7 +723,6 @@
             on:input={() => { filters = { ...filters }; }}
           />
         </div>
-
         <div class="filter-section">
           <label class="filter-label">Genres</label>
           <select multiple size="6" on:change={handleGenreChange} class="genre-select">
@@ -742,7 +731,6 @@
             {/each}
           </select>
         </div>
-
         <!-- Gráfico de barras -->
         <div class="filter-section">
           <label class="filter-label">Year Distribution</label>
@@ -799,6 +787,7 @@
   {/if}
 </div>
 
+
 <style>
   .film-network-container {
     width: 100%;
@@ -809,7 +798,6 @@
       Ubuntu, Cantarell, sans-serif;
     overflow: hidden;
   }
-
   /* Estados de carga y error */
   .loading-state,
   .error-state {
@@ -1055,24 +1043,6 @@
     font-weight: 400;
   }
 
-  .back-btn {
-    background: #f5f5f5;
-    border: 1px solid #ccc;
-    color: #222;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .back-btn:hover {
-    background: #e0e0e0;
-  }
-
   /* Contenedor del grafo */
   .graph-container {
     flex: 1;
@@ -1123,7 +1093,7 @@
   .legend {
     display: flex;
     justify-content: center;
-    gap: 16px; /* Reducir de 24px a 16px */
+    gap: 16px;
     padding: 16px 24px;
     background: #ffffff;
     border-top: 1px solid #ddd;
@@ -1132,18 +1102,16 @@
     min-height: 125px;
   }
 
-  /* Reducir el gap entre símbolo/línea y texto en cada item */
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 6px; /* Reducir de 8px a 6px */
+    gap: 6px;
     font-size: 12px;
     color: #555;
   }
 
-  /* Opcional: Hacer las líneas un poco más largas para mejor visibilidad */
   .legend-line {
-    width: 16px; /* Reducir de 20px a 16px */
+    width: 16px;
     height: 2px;
     border-radius: 1px;
   }
@@ -1180,7 +1148,7 @@
     color: #222;
     border-radius: 0;
     border: 1.5px solid #333;
-    flex-shrink: 0; /* Evitar que se contraiga */
+    flex-shrink: 0;
   }
 
   .legend-line.director {
@@ -1195,80 +1163,36 @@
     background: #ff7f0e;
   }
 
-  /* Estilos para nodos y enlaces en el SVG */
-  .network-svg .node {
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .network-svg .node:hover {
-    filter: brightness(1.2) drop-shadow(0 0 6px rgba(0, 0, 0, 0.2));
-  }
-
-  .network-svg .link {
-    transition: stroke-opacity 0.2s ease;
-  }
-
-  .network-svg .link:hover {
-    stroke-opacity: 1 !important;
-  }
-
-  /* Scrollbar personalizado para el panel de controles */
-  .controls-panel::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .controls-panel::-webkit-scrollbar-track {
-    background: #f0f0f0;
-    border-radius: 3px;
-  }
-
-  .controls-panel::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 3px;
-  }
-
-  .controls-panel::-webkit-scrollbar-thumb:hover {
-    background: #bbb;
-  }
-
   /* Responsividad */
   @media (max-width: 1024px) {
     .main-layout {
       flex-direction: column;
     }
-
     .controls-panel {
       width: 100%;
       max-height: 300px;
       overflow-y: auto;
     }
-
     .legend {
       gap: 8px;
     }
   }
-
   @media (max-width: 768px) {
     .controls-panel {
       padding: 16px;
     }
-
     .content-header {
       padding: 16px;
     }
-
     .content-header h2 {
       font-size: 20px;
     }
-
     .legend {
       padding: 12px 16px;
       gap: 6px;
     }
-
     .legend-item {
-      font-size:15px;
+      font-size: 15px;
     }
   }
 </style>
