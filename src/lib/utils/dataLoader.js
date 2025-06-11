@@ -63,7 +63,7 @@ export async function loadGraph() {
 	  return cachedGraph;
 	}
   
-	const res = await fetch(`${base}/data/graph_for_project_sin_country.json`);
+	const res = await fetch(`${base}/data/graph_for_project_con_country.json`);
 	if (!res.ok) {
 	  console.error("❌ No se pudo cargar graph_for_project.json:", res.status);
 	  throw new Error("Graph JSON not found");
