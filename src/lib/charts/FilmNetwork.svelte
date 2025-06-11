@@ -203,11 +203,11 @@
       subgraphIds.has(link.source) && subgraphIds.has(link.target)
     );
 
-    // Filtrar películas
+    // Filtrar películas - EXCEPTO el nodo de origen
     const filteredMovieIds = new Set(
       subNodes
         .filter(n => n.type === 'movie')
-        .filter(n => passesFilters(n))
+        .filter(n => n.id === movieId || passesFilters(n)) // Siempre incluir el nodo de origen
         .map(n => n.id)
     );
 
@@ -234,6 +234,10 @@
       finalIds.add(link.source);
       finalIds.add(link.target);
     });
+    
+    // Asegurar que el nodo de origen siempre esté incluido
+    finalIds.add(movieId);
+    
     const finalNodes = subNodes.filter(n => finalIds.has(n.id));
 
     return { nodes: finalNodes, links: validLinks };
@@ -389,41 +393,51 @@
     const tooltip = d3.select(tooltipElement);
 
     nodes
-      .on('mouseover', (event, d) => {
-        if (d.type !== 'movie') return;
+    .on('mouseover', (event, d) => {
+      if (d.type !== 'movie') return;
 
-        const title = d.title || d.primaryTitle || 'Unknown';
-        const year = d.year || 'N/A';
-        const rating = d.averageRating ? (+d.averageRating).toFixed(1) : 'N/A';
-        const votes = d.numVotes ? (+d.numVotes).toLocaleString() : 'N/A';
-        const genres =
-          d.genres && Array.isArray(d.genres) ? d.genres.join(', ') : 'N/A';
-        const oscarNom = d.oscarNominations != null ? d.oscarNominations : 0;
-        const oscarWin = d.oscarWins != null ? d.oscarWins : 0;
+      const title = d.title || d.primaryTitle || 'Unknown';
+      const year = d.year || 'N/A';
+      const rating = d.averageRating ? (+d.averageRating).toFixed(1) : 'N/A';
+      const votes = d.numVotes ? (+d.numVotes).toLocaleString() : 'N/A';
+      const genres =
+        d.genres && Array.isArray(d.genres) ? d.genres.join(', ') : 'N/A';
+      const oscarNom = d.oscarNominations != null ? d.oscarNominations : 0;
+      const oscarWin = d.oscarWins != null ? d.oscarWins : 0;
 
-        const htmlContent = `
-          <div class="title">${title} (${year})</div>
-          <div>Rating: ${rating}/10</div>
-          <div>Votes: ${votes}</div>
-          <div>Genres: ${genres}</div>
-          <div>Oscar Nominations: ${oscarNom}</div>
-          <div>Oscar Wins: ${oscarWin}</div>
-        `;
+      const htmlContent = `
+        <div class="title">${title} (${year})</div>
+        <div>Rating: ${rating}/10</div>
+        <div>Votes: ${votes}</div>
+        <div>Genres: ${genres}</div>
+        <div>Oscar Nominations: ${oscarNom}</div>
+        <div>Oscar Wins: ${oscarWin}</div>
+      `;
 
-        tooltip
-          .html(htmlContent)
-          .style('display', 'block')
-          .style('left', `${event.pageX + 1}px`)
-          .style('top', `${event.pageY - 1}px`);
+      // Obtener coordenadas relativas al contenedor del grafo
+      const rect = graphContainerElement.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      tooltip
+        .html(htmlContent)
+        .style('display', 'block')
+        .style('left', `${x + 10}px`)    
+        .style('top', `${y - 10}px`);  
       })
       .on('mousemove', event => {
+        // Obtener coordenadas relativas al contenedor del grafo
+        const rect = graphContainerElement.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
         tooltip
-          .style('left', `${event.pageX + 1}px`)
-          .style('top', `${event.pageY - 1}px`);
+          .style('left', `${x + 10}px`)    
+          .style('top', `${y - 10}px`);   
       })
       .on('mouseout', () => {
         tooltip.style('display', 'none');
-      });
+    });
 
     // Actualizar posiciones con restricciones mejoradas
     simulation.on('tick', () => {
