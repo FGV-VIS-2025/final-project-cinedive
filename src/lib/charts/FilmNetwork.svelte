@@ -344,10 +344,12 @@
       .attr('d', d => {
         const radius = getEffectiveRadius(d);
         const symbolType = d.type === 'person' ? d3.symbolStar : d3.symbolCircle;
-        return d3.symbol().type(symbolType).size(radius * radius * Math.PI)();
+        const area = d.type === 'person' ? 150 /*ajusta este valor para hacerlo más pequeño o grande*/ 
+                                          : Math.PI * Math.pow(getEffectiveRadius(d), 2);
+        return d3.symbol().type(symbolType).size(area)();
       })
       .attr('fill', d => {
-        if (d.type === 'person') return '#ffffff';
+        if (d.type === 'person') return '#a3a3a3';
         return d.oscarWins && +d.oscarWins > 0 ? '#ffd700' : '#69b3a2';
       })
       .attr('stroke', d =>
@@ -747,40 +749,38 @@
               {currentGraph.nodes.length} nodes • {currentGraph.links.length} connections
             </div>
           </div>
+          <div class="legend">
+            <div class="legend-item">
+              <div class="legend-symbol circle movie"></div>
+              <span>Movie</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-symbol star person"></div>
+              <span>Person</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-symbol circle oscar"></div>
+              <span>Oscar Winner</span>
+            </div>
+            <div class="legend-separator"></div>
+            <div class="legend-item">
+              <div class="legend-line director"></div>
+              <span>Director</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-line writer"></div>
+              <span>Writer</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-line actor"></div>
+              <span>Actor</span>
+            </div>
+          </div>
         </div>
 
         <div class="graph-container" bind:this={graphContainerElement}>
           <svg bind:this={svgElement} class="network-svg"></svg>
           <div bind:this={tooltipElement} class="tooltip"></div>
-        </div>
-
-        <!-- Leyenda -->
-        <div class="legend">
-          <div class="legend-item">
-            <div class="legend-symbol circle movie"></div>
-            <span>Movie</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-symbol star person"></div>
-            <span>Person</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-symbol circle oscar"></div>
-            <span>Oscar Winner</span>
-          </div>
-          <div class="legend-separator"></div>
-          <div class="legend-item">
-            <div class="legend-line director"></div>
-            <span>Director</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-line writer"></div>
-            <span>Writer</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-line actor"></div>
-            <span>Actor</span>
-          </div>
         </div>
       </div>
     </div>
@@ -1025,11 +1025,26 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: 16px 24px;
     background: #ffffff;
     border-bottom: 1px solid #ddd;
   }
 
+  .content-header .legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0;               
+    background: transparent;  /* quitar fondo blanco si choca con el header */
+    border-top: none;         /* quitar la línea superior */
+    flex-wrap: wrap;          /* si hay muchos items en pantallas pequeñas */
+    min-height: auto;         /* no forzar altura */
+    margin-left: auto;        /* empuja la leyenda hacia la derecha */
+  }
+  /* Ajusta gap según espacio disponible */
+  .content-header .legend {
+    gap: 12px;
+  }
   .header-info h2 {
     margin: 0 0 4px 0;
     font-size: 24px;
@@ -1132,7 +1147,7 @@
   }
 
   .legend-symbol.star.person {
-    background: #ffffff;
+    background: #a3a3a3;
     clip-path: polygon(
       50% 0%,
       61% 35%,
