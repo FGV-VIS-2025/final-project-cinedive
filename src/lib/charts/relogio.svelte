@@ -1,16 +1,36 @@
 <script>
   import { onMount, afterUpdate } from 'svelte';
   import * as d3 from 'd3';
+  import { hexbin as d3Hexbin } from 'd3-hexbin';
 
   export let data = [];
   export let width = 500;
 
   let svgEl;
 
+  // criando função de select feature
+  const featureOptions = [
+    "startYear",
+    "runtimeMinutes",
+    "averageRating",
+    "numVotes",
+  ];
+
+  let angleFeature = "runtimeMinutes";
+  let radiusFeature = "numVotes";
+
+function polarToCartesian(theta, r) {
+  return [
+    Math.cos(theta - Math.PI / 2) * r,
+    Math.sin(theta - Math.PI / 2) * r
+  ];
+}
+  
+
   function draw() {
     if (!data || data.length === 0) return;
 
-    const cleaned = data.filter(d => !isNaN(d.numVotes) && !isNaN(d.runtimeMinutes));
+    const cleaned = data.filter(d => !isNaN(d[radiusFeature]) && !isNaN(d[angleFeature]));
 
     const height = width;
     const margin = 40;
@@ -19,11 +39,11 @@
     const centerY = height / 2;
 
     const angle = d3.scaleLinear()
-      .domain(d3.extent(cleaned, d => +d.runtimeMinutes))
+      .domain(d3.extent(cleaned, d => +d[angleFeature]))
       .range([0, 2 * Math.PI]);
 
     const r = d3.scaleSqrt() // sqrt para espalhar melhor os valores
-      .domain([0, d3.max(cleaned, d => +d.numVotes)])
+      .domain([0, d3.max(cleaned, d => +d[radiusFeature])])
       .range([10, radius]);
 
     const svg = d3.select(svgEl)
@@ -75,13 +95,42 @@
       .attr("font-size", "10px")
       .text(d => d);
 
+    const points = cleaned.map(d => {
+      const a = angle(+d[angleFeature]);
+      const rad = r(+d[radiusFeature]);
+      const [x, y] = polarToCartesian(a, rad);
+      return { x, y };
+    });
+
+    const hexbin = d3Hexbin()
+      .x(d => d.x)
+      .y(d => d.y)
+      .radius(10) // ajuste conforme necessário
+      .extent([[-radius, -radius], [radius, radius]]);
+
+    const bins = hexbin(points);
+
+    const color = d3.scaleSequential(d3.interpolateYlGnBu)
+      .domain([0, d3.max(bins, b => b.length)]);
+
+
+    g.append("g")
+      .attr("class", "density")
+      .selectAll("path")
+      .data(bins)
+      .join("path")
+      .attr("d", d => `M${d.x},${d.y}${hexbin.hexagon()}`)
+      .attr("fill", d => color(d.length))
+      .attr("stroke", "none")
+      .attr("opacity", 0.6);
+
     // Pontos
     g.selectAll("circle.dot")
       .data(cleaned)
       .join("circle")
       .attr("class", "dot")
-      .attr("cx", d => Math.cos(angle(d.runtimeMinutes) - Math.PI / 2) * r(d.numVotes))
-      .attr("cy", d => Math.sin(angle(d.runtimeMinutes) - Math.PI / 2) * r(d.numVotes))
+      .attr("cx", d => Math.cos(angle(d[angleFeature]) - Math.PI / 2) * r(d[radiusFeature]))
+      .attr("cy", d => Math.sin(angle(d[angleFeature]) - Math.PI / 2) * r(d[radiusFeature]))
       .attr("r", 3)
       .attr("fill", "#69b3a2")
       .attr("opacity", 0.7);
@@ -90,5 +139,26 @@
   onMount(draw);
   afterUpdate(draw);
 </script>
+
+<!-- Seletor de Features -->
+<div style="margin-bottom: 1rem;">
+  <label>
+    Ângulo:
+    <select bind:value={angleFeature}>
+      {#each featureOptions as feature}
+        <option value={feature}>{feature}</option>
+      {/each}
+    </select>
+  </label>
+
+  <label style="margin-left: 1rem;">
+    Raio:
+    <select bind:value={radiusFeature}>
+      {#each featureOptions as feature}
+        <option value={feature}>{feature}</option>
+      {/each}
+    </select>
+  </label>
+</div>
 
 <svg bind:this={svgEl}></svg>
