@@ -173,7 +173,7 @@
         source: typeof link.source === 'object' ? link.source.id : link.source,
         target: typeof link.target === 'object' ? link.target.id : link.target,
         weight: link.weight || 1,
-        roles: link.roles || []
+        roles: link.role ? [link.role] : [] 
       }));
 
     // Construir adyacencia
@@ -316,6 +316,7 @@
       return '#999999';
     }
 
+
     // Dibujar enlaces
     const linkGroup = svg.append('g').attr('class', 'links').attr('clip-path', 'url(#graph-clip)');
     const links = linkGroup.selectAll('line')
@@ -323,7 +324,7 @@
       .join('line')
       .attr('class', 'link')
       .attr('stroke', d => getRoleColor(d.roles))
-      .attr('stroke-width', d => Math.sqrt(d.weight || 1) * 1.5)
+      .attr('stroke-width', d => Math.sqrt(d.weight || 1) * 3)
       .attr('stroke-opacity', 0.6);
 
     // Dibujar nodos
