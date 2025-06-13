@@ -158,6 +158,8 @@
     name="description"
     content="Visualize the networks of connections between films and explore the history of cinema interactively."
   />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">
 </svelte:head>
 
 {#if !showGraphView}
@@ -391,189 +393,298 @@
 {/if}
 
 <style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-light: #1a1a1a;
+    --bg-medium: #252525;
+    --gold: #d4af37;
+    --gold-hover: #f5c842;
+    --gold-muted: #b8941e;
+    --text: #fdfcf8;
+    --muted: #a8a8a8;
+    --accent-dark: #333333;
+    --border: #404040;
+    --shadow: rgba(0, 0, 0, 0.8);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
   :global(html, body) {
     margin: 0;
     padding: 0;
+    font-family: 'Source Sans Pro', sans-serif;
+    background: linear-gradient(135deg, var(--bg) 0%, #1a1a1a 100%);
+    color: var(--text);
     overflow-x: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    scroll-behavior: smooth;
   }
 
-  /* ========================
-     ESTILOS MODO BÚSQUEDA
-   ======================== */
-
-  /* Intro Section */
   .intro-section {
     height: 100vh;
+    background: 
+      radial-gradient(ellipse at center, rgba(212, 175, 55, 0.1) 0%, transparent 70%),
+      linear-gradient(135deg, #0a0a0a 0%, #1e1e1e 50%, #0f0f0f 100%);
+    color: var(--gold);
     display: flex;
-    align-items: center;
     justify-content: center;
-    background: #ffffff;
-    color: rgb(255, 222, 78);
+    align-items: center;
     text-align: center;
+    padding: 2rem;
     position: relative;
-    z-index: 10; 
-    margin-bottom: 80px; 
+    overflow: hidden;
+  }
+
+  .intro-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(212, 175, 55, 0.02) 0%, transparent 50%);
+    animation: shimmer 20s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  .intro-content {
+    position: relative;
+    z-index: 2;
   }
 
   .intro-content h1 {
-    font-size: 3.5rem;
-    margin-bottom: 1rem;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 5vw, 4rem);
     font-weight: 700;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, var(--gold), var(--gold-hover));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.05em;
+    text-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
   }
 
   .intro-text {
-    font-size: 1.25rem;
-    max-width: 600px;
-    margin: 0 auto 3rem;
-    line-height: 1.6;
-    opacity: 0.95;
+    font-size: clamp(1.1rem, 2.5vw, 1.3rem);
+    max-width: 700px;
+    margin: 0 auto;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
   }
 
   .scroll-indicator {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
+    margin-top: 4rem;
+    color: var(--muted);
+    font-size: 0.95rem;
     opacity: 0.8;
   }
 
   .arrow-down {
-    width: 20px;
-    height: 20px;
-    border-right: 2px solid white;
-    border-bottom: 2px solid white;
+    width: 24px;
+    height: 24px;
+    border-right: 3px solid var(--gold);
+    border-bottom: 3px solid var(--gold);
     transform: rotate(45deg);
-    animation: bounce 2s infinite;
+    animation: bounce 2s infinite ease-in-out;
+    margin: 1rem auto 0;
+    opacity: 0.7;
   }
 
   @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% { transform: rotate(45deg) translateY(0); }
-    40% { transform: rotate(45deg) translateY(-10px); }
-    60% { transform: rotate(45deg) translateY(-5px); }
+    0%, 20%, 50%, 80%, 100% { 
+      transform: rotate(45deg) translateY(0);
+      opacity: 0.7;
+    }
+    40% { 
+      transform: rotate(45deg) translateY(-10px);
+      opacity: 1;
+    }
+    60% { 
+      transform: rotate(45deg) translateY(-5px);
+      opacity: 0.9;
+    }
   }
 
-  /* Layout principal */
   .step-container {
     scroll-snap-type: y mandatory;
-    overflow-y: scroll;
     height: 100vh;
-    scroll-behavior: smooth;
+    overflow-y: scroll;
   }
 
   .step {
     scroll-snap-align: start;
-    scroll-snap-type: y mandatory;
-    overflow-y: scroll;
-    height: 100vh; /* cada paso ocupa pantalla completa */
-    padding: 2rem 0;
-    padding-left: 10rem;
-    box-sizing: border-box;
+    min-height: 100vh;
+    padding: 4rem clamp(1.5rem, 5vw, 4rem);
+    background: 
+      linear-gradient(135deg, var(--bg) 0%, var(--bg-light) 100%);
+    color: var(--text);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .step::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 10% 20%, rgba(212, 175, 55, 0.01) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(212, 175, 55, 0.01) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  .step-content {
+    position: relative;
+    z-index: 2;
+    max-width: 1200px;
+    width: 100%;
   }
 
   .step-content h2 {
-    font-size: 2.5rem;
-    color: #333;
-    margin-bottom: 1rem;
-    font-weight: 600;
-    margin-left: 3rem;
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    color: var(--gold);
+    margin-bottom: 2rem;
+    font-weight: 700;
+    position: relative;
+    display: inline-block;
   }
 
+  .step-content h2::after {
+    content: '';
+    position: absolute;
+    bottom: -0.5rem;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    border-radius: 2px;
+  }
+
+  .narrative,
   .step-description {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    color: #666;
+    font-size: clamp(1rem, 2.2vw, 1.2rem);
+    color: var(--muted);
+    line-height: 1.8;
+    max-width: 800px;
+    font-weight: 300;
     margin-bottom: 2rem;
   }
 
-  /* Texto narrativo (scrollytelling) */
-  .narrative {
-    font-size: 1.15rem;
-    line-height: 1.7;
-    color: #444;
-    margin: 1rem 3rem 2rem 3rem;
-    max-width: 800px;
+  .search-section,
+  .selected-movie,
+  .open-graph-note {
+    background: 
+      linear-gradient(135deg, var(--bg-light) 0%, var(--bg-medium) 100%);
+    padding: 2.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    margin: 2rem 0;
+    box-shadow: 
+      0 8px 32px var(--shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: var(--transition);
+    backdrop-filter: blur(10px);
   }
 
-  /* Search Section */
-  .search-section {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    margin: 0 3rem;
-  }
-
-  .selected-movie {
-    margin-top: 1.5rem;
-    padding: 1.5rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #667eea;
-    margin: 0 3rem;
+  .search-section:hover,
+  .selected-movie:hover,
+  .open-graph-note:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 40px var(--shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    border-color: var(--gold-muted);
   }
 
   .movie-card {
-    margin: 0.5rem 0;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    padding: 1rem;
+    background: rgba(212, 175, 55, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(212, 175, 55, 0.1);
+    margin: 1rem 0;
   }
 
   .year {
-    color: #666;
-    font-weight: normal;
+    color: var(--gold-muted);
+    font-weight: 400;
   }
 
   .reset-btn,
   .retry-btn,
-  .back-btn,
-  .view-graph-btn {
-    background: #667eea;
-    color: white;
+  .view-graph-btn,
+  .back-full-btn {
+    background: linear-gradient(135deg, var(--gold), var(--gold-hover));
+    color: #000;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
+    padding: 0.8rem 1.8rem;
+    border-radius: 10px;
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.2s;
-    margin-top: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: var(--transition);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .reset-btn::before,
+  .retry-btn::before,
+  .view-graph-btn::before,
+  .back-full-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s;
   }
 
   .reset-btn:hover,
   .retry-btn:hover,
-  .back-btn:hover,
-  .view-graph-btn:hover {
-    background: #5a6fd8;
+  .view-graph-btn:hover,
+  .back-full-btn:hover {
+    background: linear-gradient(135deg, var(--gold-hover), #ffd700);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
   }
 
-  .warning-message {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 1rem 3rem;
-    text-align: center;
+  .reset-btn:hover::before,
+  .retry-btn:hover::before,
+  .view-graph-btn:hover::before,
+  .back-full-btn:hover::before {
+    left: 100%;
   }
 
-  .warning-message p {
-    color: #856404;
-    margin: 0 0 1rem 0;
-    font-weight: 500;
-  }
-
-  /* Spinner y error */
   .loading,
   .error {
     text-align: center;
+    margin-top: 2rem;
+    color: var(--muted);
     padding: 2rem;
-    margin: 0 3rem;
   }
 
   .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #667eea;
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(212, 175, 55, 0.1);
+    border-top: 4px solid var(--gold);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto 1rem;
@@ -584,155 +695,152 @@
     100% { transform: rotate(360deg); }
   }
 
-  /* Step 2: nota para ver grafo completo */
-  .open-graph-note {
-    background: #e9f2ff;
-    padding: 1rem;
-    border-radius: 6px;
-    border: 1px solid #cfe0ff;
-    margin: 1rem 3rem;
-  }
-
-  .open-graph-note p {
-    margin: 0 0 1rem 0;
-  }
-
-  /* Diseño horizontal para Step 2 */
-  .horizontal-layout {
-    display: flex;
-    flex-direction: row;
-    gap: 2rem;
-    margin: 0 3rem;
-  }
-
-  .map-wrapper {
-    flex: 1;
-  }
-
-  .step-info {
-    flex: 1;
-    display: flex;
-    align-items: center;
-  }
-
-  /* Controles de modo (Heatmap) */
-  .mode-controls label {
-    font-size: 1rem;
-    color: #333;
-  }
-
-  /* =========================
-     ESTILOS MODO GRAFO COMPLETO
-   ========================= */
   .full-graph-container {
-    position: relative;
-    width: 100%;
+    background: var(--bg);
     height: 100vh;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
-    background: #fafafa;
   }
 
-  .back-full-btn {
-    margin: 1rem;
-    padding: 0.5rem 1rem;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    align-self: flex-start;
-    transition: background-color 0.2s;
-  }
-
-  .back-full-btn:hover {
-    background: #5a6fd8;
-  }
-
-  /* Ajustamos que FilmNetwork ocupe todo el espacio restante */
   .full-graph-container :global(.network-svg) {
     width: 100%;
-    height: calc(100vh - 3rem); /* restamos espacio para el botón “Back” */
+    height: calc(100vh - 3rem);
     display: block;
   }
 
-  /* ========================
-     ESTILOS COMPARTIDOS / Responsive
-   ======================== */
-  @media (max-width: 1024px) {
-    .step {
-      margin-bottom: 50vh;
-    }
-    .intro-content h1 {
-      font-size: 2.5rem;
-    }
-    .narrative {
-      margin: 1rem 2rem 2rem 2rem;
-      font-size: 1rem;
-    }
-    .search-section,
-    .open-graph-note,
-    .horizontal-layout {
-      margin: 0 2rem;
-    }
+  .horizontal-layout {
+    display: flex;
+    gap: 3rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
   }
 
+  .map-wrapper,
+  .step-info {
+    flex: 1;
+    min-width: 300px;
+  }
+
+  .map-wrapper {
+    background: var(--bg-light);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+  }
+
+  .mode-controls {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .mode-controls label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: var(--transition);
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+  }
+
+  .mode-controls label:hover {
+    background: var(--bg-medium);
+    border-color: var(--gold-muted);
+  }
+
+  .mode-controls input[type="radio"] {
+    accent-color: var(--gold);
+  }
+
+  .overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100vh;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--gold) 20%,
+      var(--gold-hover) 50%,
+      var(--gold) 80%,
+      transparent 100%
+    );
+    z-index: 1000;
+    opacity: 0.6;
+  }
+
+  /* Responsive Design */
   @media (max-width: 768px) {
-    .step-content h2 {
-      font-size: 2rem;
-      margin-left: 15rem;
-      padding-left: 15rem;
+    .step {
+      padding: 2rem 1.5rem;
     }
-    .intro-content h1 {
-      font-size: 2rem;
-    }
-    .intro-text {
-      font-size: 1rem;
-      padding: 0 1rem;
-    }
-    .search-section {
-      padding: 1rem;
-      margin: 0 1rem;
-    }
+
+    .search-section,
+    .selected-movie,
     .open-graph-note {
-      padding: 0.75rem;
-      margin: 0 1rem;
+      padding: 1.5rem;
+      margin: 1rem 0;
     }
-    .narrative {
-      margin: 1rem;
-      font-size: 0.95rem;
+
+    .horizontal-layout {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .mode-controls {
+      flex-direction: column;
+      gap: 1rem;
     }
   }
 
   @media (max-width: 480px) {
     .intro-content h1 {
-      font-size: 1.5rem;
+      font-size: 2rem;
     }
+    
     .step-content h2 {
-      font-size: 1.5rem;
-      margin-left: 15rem;
-      padding-left: 15rem;
+      font-size: 1.8rem;
     }
-    .step-description,
+    
     .narrative {
-      font-size: 0.9rem;
-    }
-    .step {
-      padding: 1rem 0;
-    }
-    .back-full-btn {
-      font-size: 0.9rem;
-      margin: 0.75rem;
+      font-size: 1rem;
     }
   }
 
-  .overlay {
-    position: absolute; 
-    top: 0;
-    left: 0;
-    width: 3px;
-    background-color: rgba(0,0,0,0); 
-    z-index: 1; 
+  /* Focus states for accessibility */
+  .reset-btn:focus,
+  .retry-btn:focus,
+  .view-graph-btn:focus,
+  .back-full-btn:focus {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  /* Smooth transitions for all interactive elements */
+  * {
+    transition: var(--transition);
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bg);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--gold-muted);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--gold);
   }
 </style>
