@@ -166,11 +166,20 @@
        MODO BÚSQUEDA / PASOS (Scrollytelling)
      ======================== -->
   <div class="step-container">
-    <!-- Intro Section -->
-    <!-- <div class= "step", data-step="0"> -->
-      <section class="intro-section">
-        <div class="intro-content">
-          <h1>Welcome to CineDive!</h1>
+       
+    <!-- Fita decorativa en overlay -->
+    <div class="overlay">
+      <Fita />
+    </div> 
+
+    <!-- Contenido principal con pasos scrollytelling -->
+    <!-- ===================================
+         Step 1
+         ===================================-->
+
+    <div class="step" data-step="1">
+      <div class="intro-content">
+        <h1>Welcome to CineDive!</h1>
           <p class="intro-text">
             An interactive journey through cinematic history: discover how Oscar-nominated and winning
             films are interwoven via actors, directors, and collaborators.
@@ -179,24 +188,15 @@
             <span>Scroll to start your exploration</span>
             <div class="arrow-down"></div>
           </div>
-        </div>
-      </section>
-  
-    <!-- </div> -->
-    
-    <!-- Fita decorativa en overlay -->
-    <div class="overlay">
-      <Fita />
-    </div> 
-
-    <!-- Contenido principal con pasos scrollytelling -->
+      </div>
+    </div>
 
     <!-- ===================================
-         Step 1: Search your film
+         Step 2: Search your film
          =================================== -->
-    <div class="step" data-step="1">
+    <div class="step" data-step="2">
       <div class="step-content">
-        <h2>Step 1: Search your Film</h2>
+        <h2>Search your Film</h2>
         <!-- Narración Scrollytelling en inglés -->
         <p class="narrative">
           Imagine traveling back to the set where your favorite movie was shot. Every film starts with a spark
@@ -245,11 +245,11 @@
     </div>
 
     <!-- ===================================
-         Step 2: Choose your ribbons
+         Step 3: Choose your ribbons
          =================================== -->
-    <div class="step" data-step="2">
+    <div class="step" data-step="3">
       <div class="step-content">
-        <h2>Step 2: Choose your ribbons</h2>
+        <h2>Choose your ribbons</h2>
         <!-- Narración Scrollytelling en inglés -->
         <p class="narrative">
           From Hollywood to Bollywood and beyond, every region in the world has its own cinematic fingerprint.
@@ -285,11 +285,11 @@
     </div>
 
     <!-- ===================================
-         Step 3: Oscar Wins vs Nominations Heatmap
+         Step 4: Oscar Wins vs Nominations Heatmap
          =================================== -->
-    <div class="step" data-step="3">
+    <div class="step" data-step="4">
       <div class="step-content">
-        <h2>Step 3: Oscar Wins vs Nominations Heatmap</h2>
+        <h2>Oscar Wins vs Nominations Heatmap</h2>
         <!-- Narración Scrollytelling en inglés -->
         <p class="narrative">
           Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
@@ -321,11 +321,11 @@
     </div>
 
     <!-- ===================================
-         Step 4: Oscar Wins vs Nominations Heatmap
+         Step 5: Oscar Wins vs Nominations Heatmap
          =================================== -->
-    <div class="step" data-step="4">
+    <div class="step" data-step="5">
       <div class="step-content">
-        <h2>Step 4: Oscar Wins vs Nominations Heatmap</h2>
+        <h2>Oscar Wins vs Nominations Heatmap</h2>
         <!-- Narración Scrollytelling en inglés -->
         <p class="narrative">
           Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
@@ -341,11 +341,11 @@
     </div>
 
     <!-- ===================================
-         Step 5: Oscar Wins vs Nominations Heatmap
+         Step 6: Oscar Wins vs Nominations Heatmap
          =================================== -->
-    <div class="step" data-step="5">
+    <div class="step" data-step="6">
       <div class="step-content">
-        <h2>Step 5: Oscar Wins vs Nominations Heatmap</h2>
+        <h2>Oscar Wins vs Nominations Heatmap</h2>
         <!-- Narración Scrollytelling en inglés -->
         <p class="narrative">
           Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
@@ -360,11 +360,11 @@
     </div>
 
     <!-- ===================================
-         Step 6: Oscar Wins vs Nominations Heatmap
+         Step 7: Oscar Wins vs Nominations Heatmap
          =================================== -->
-    <div class="step" data-step="6">
+    <div class="step" data-step="7">
       <div class="step-content">
-        <h2>Step 6: Gafico apenas de artistas</h2>
+        <h2>Gafico apenas de artistas</h2>
         <!-- Narración Scrollytelling en inglés -->
         <p class="narrative">
           Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
@@ -415,6 +415,34 @@
     overflow-x: hidden;
     scroll-behavior: smooth;
   }
+
+  .step[data-step="1"] {
+    height: 100vh;
+    background: 
+      radial-gradient(ellipse at center, rgba(212, 175, 55, 0.1) 0%, transparent 70%),
+      linear-gradient(135deg, #0a0a0a 0%, #1e1e1e 50%, #0f0f0f 100%);
+    color: var(--gold);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .step[data-step="2"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(212, 175, 55, 0.02) 0%, transparent 50%);
+    animation: shimmer 20s ease-in-out infinite;
+  }
+
 
   .intro-section {
     height: 100vh;

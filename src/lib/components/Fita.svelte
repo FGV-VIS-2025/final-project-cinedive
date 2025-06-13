@@ -5,7 +5,7 @@
   import { derived } from 'svelte/store';
   import { get } from 'svelte/store';
 
-  export let howmany = 6;
+  export let howmany = 7;
   export let width = 220;
   export let height = 1000;
 
