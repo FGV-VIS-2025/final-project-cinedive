@@ -26,7 +26,6 @@
   let isLoading = true;
   let error = null;
 
-  let showGraphView = false;
 
   let worldGeoJson;
   let data_for_fitas;
@@ -131,12 +130,10 @@
   // Cuando el usuario selecciona un ítem del autocomplete:
   function onMovieSelect(event) {
     selectedMovie = event.detail.id; // tconst de la película elegida
-    showGraphView = true;            // cambiar a “modo grafo completo”
   }
 
   // Resetea todo y vuelve al buscador
   function handleBack() {
-    showGraphView = false;
     selectedMovie = null;
     searchQuery = '';
   }
@@ -161,234 +158,180 @@
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">
 </svelte:head>
 
-{#if !showGraphView}
-  <!-- ========================
-       MODO BÚSQUEDA / PASOS (Scrollytelling)
-     ======================== -->
-  <div class="step-container">
-       
-    <!-- Fita decorativa en overlay -->
-    <div class="overlay">
-      <Fita />
-    </div> 
+<div class="step-container">
+  <!-- Fita decorativa en overlay -->
+  <div class="overlay">
+    <Fita />
+  </div> 
 
-    <!-- Contenido principal con pasos scrollytelling -->
-    <!-- ===================================
-         Step 1
-         ===================================-->
-
-    <div class="step" data-step="1">
-      <div class="intro-content">
-        <h1>Welcome to CineDive!</h1>
-          <p class="intro-text">
-            An interactive journey through cinematic history: discover how Oscar-nominated and winning
-            films are interwoven via actors, directors, and collaborators.
-          </p>
-          <div class="scroll-indicator">
-            <span>Scroll to start your exploration</span>
-            <div class="arrow-down"></div>
-          </div>
+  <!-- Step 1 -->
+  <div class="step" data-step="1">
+    <div class="intro-content">
+      <h1>Welcome to CineDive!</h1>
+      <p class="intro-text">
+        An interactive journey through cinematic history: discover how Oscar-nominated and winning
+        films are interwoven via actors, directors, and collaborators.
+      </p>
+      <div class="scroll-indicator">
+        <span>Scroll to start your exploration</span>
+        <div class="arrow-down"></div>
       </div>
     </div>
+  </div>
 
-    <!-- ===================================
-         Step 2: Search your film
-         =================================== -->
-    <div class="step" data-step="2">
-      <div class="step-content">
-        <h2>Search your Film</h2>
-        <!-- Narración Scrollytelling en inglés -->
-        <p class="narrative">
-          Imagine traveling back to the set where your favorite movie was shot. Every film starts with a spark
-          of inspiration, brings together a team of talented individuals, and leaves a lasting mark on popular
-          culture. Use the search bar to find that one film that changed everything for you.
-        </p>
+  <!-- Step 2: Search your Film -->
+  <div class="step" data-step="2">
+    <div class="step-content">
+      <h2>Search your Film</h2>
+      <p class="narrative">
+        Imagine traveling back to the set where your favorite movie was shot. Every film starts with a spark
+        of inspiration, brings together a team of talented individuals, and leaves a lasting mark on popular
+        culture. Use the search bar to find that one film that changed everything for you.
+      </p>
 
-        {#if isLoading}
-          <div class="loading">
-            <div class="spinner"></div>
-            <p>Loading movie list...</p>
-          </div>
-        {:else if error}
-          <div class="error">
-            <p>{error}</p>
-            <button class="retry-btn" on:click={() => location.reload()}>
-              Try again
-            </button>
-          </div>
-        {:else}
-          <div class="search-section">
-            <FilmSearch
-              bind:query={searchQuery}
-              options={filteredMovies}
-              on:select={onMovieSelect}
-              placeholder="Type at least 2 letters..."
-            />
+      {#if isLoading}
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Loading movie list...</p>
+        </div>
+      {:else if error}
+        <div class="error">
+          <p>{error}</p>
+          <button class="retry-btn" on:click={() => location.reload()}>
+            Try again
+          </button>
+        </div>
+      {:else}
+        <div class="search-section">
+          <FilmSearch
+            bind:query={searchQuery}
+            options={filteredMovies}
+            on:select={onMovieSelect}
+            placeholder="Type at least 2 letters..."
+          />
 
-            {#if selectedMovieInfo}
-              <div class="selected-movie">
-                <h4>You have selected:</h4>
-                <div class="movie-card">
-                  <strong>{selectedMovieInfo.primaryTitle}</strong>
-                  {#if selectedMovieInfo.startYear}
-                    <span class="year">({selectedMovieInfo.startYear})</span>
-                  {/if}
-                </div>
-                <button class="reset-btn" on:click={() => { selectedMovie = null; searchQuery = ''; }}>
-                  Change selection
-                </button>
+          {#if selectedMovieInfo}
+            <div class="selected-movie">
+              <h4>You have selected:</h4>
+              <div class="movie-card">
+                <strong>{selectedMovieInfo.primaryTitle}</strong>
+                {#if selectedMovieInfo.startYear}
+                  <span class="year">({selectedMovieInfo.startYear})</span>
+                {/if}
               </div>
-            {/if}
-          </div>
-        {/if}
-      </div>
-    </div>
-
-    <!-- ===================================
-         Step 3: Choose your ribbons
-         =================================== -->
-    <div class="step" data-step="3">
-      <div class="step-content">
-        <h2>Choose your ribbons</h2>
-        <!-- Narración Scrollytelling en inglés -->
-        <p class="narrative">
-          From Hollywood to Bollywood and beyond, every region in the world has its own cinematic fingerprint.
-          Explore the world map and select the “ribbons” that pique your curiosity. This way, you’ll embark on
-          a geographic journey tracing cinematic influence across the globe.
-        </p>
-        <div class="horizontal-layout">
-          <div class="map-wrapper">
-            {#if worldGeoJson && GlobalData}
-              <WorldMap geoData={worldGeoJson} data={GlobalData} />
-            {/if}
-          </div>
-          <div class="step-info">
-            <p class="step-description">
-              Adjust filters and choose the countries that shaped cinematic trends—from golden age classics
-              to modern cult favorites.
-            </p>
-          </div>
+              <button class="reset-btn" on:click={handleBack}>
+                Change selection
+              </button>
+            </div>
+          {/if}
         </div>
-
-        {#if selectedMovie}
-          <div class="open-graph-note">
-            <p>
-              You selected <strong>{selectedMovieInfo.primaryTitle}</strong> in the previous step.
-              Now, if you want to dive deeper into all its connections, click below to view the full network graph.
-            </p>
-            <button class="view-graph-btn" on:click={() => (showGraphView = true)}>
-              View Full Graph
-            </button>
-          </div>
-        {/if}
-      </div>
+      {/if}
     </div>
+  </div>
 
-    <!-- ===================================
-         Step 4: Oscar Wins vs Nominations Heatmap
-         =================================== -->
-    <div class="step" data-step="4">
-      <div class="step-content">
-        <h2>Oscar Wins vs Nominations Heatmap</h2>
-        <!-- Narración Scrollytelling en inglés -->
-        <p class="narrative">
-          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
-          visualize how nominations and wins correlate: each cell groups films with similar numbers of
-          nominations and victories, revealing patterns in cinematic recognition.
-        </p>
+  <!-- Step 3: Network Graph -->
+  <div class="step" data-step="3">
+    <div class="step-content">
+      <h2>Explore Connections</h2>
+      <p class="narrative">
+        Now that you've picked a film, let's explore its network. Who were the collaborators? Which directors,
+        writers, and actors made it iconic? Dive into the connections that shape cinematic history.
+      </p>
 
-        <Heatmap
-          loadMoviesFullData={loadMoviesLastMovies}
-          mode={heatmapMode}
-        />
+      {#if selectedMovie}
+        <div class="network-graph-wrapper">
+          <h3>
+            Network of <span style="color: var(--gold);">{selectedMovieInfo.primaryTitle}</span>
+          </h3>
+          <FilmNetwork movieId={selectedMovie} />
+          <button class="reset-btn" on:click={handleBack}>
+            ← Change selection
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
 
-        <!-- Controles para cambiar modo de visualización -->
-        <div class="mode-controls" style="margin-top: 1rem;">
-          <label>
-            <input type="radio" bind:group={heatmapMode} value="exploration" />
-            Exploration
-          </label>
-          <label style="margin-left: 1rem;">
-            <input type="radio" bind:group={heatmapMode} value="topWins" />
-            Top Wins
-          </label>
-          <label style="margin-left: 1rem;">
-            <input type="radio" bind:group={heatmapMode} value="topNominations" />
-            Top Nominations
-          </label>
+  <!-- Step 4: Map -->
+  <div class="step" data-step="4">
+    <div class="step-content">
+      <h2>Choose your ribbons</h2>
+      <p class="narrative">
+        From Hollywood to Bollywood and beyond, every region in the world has its own cinematic fingerprint.
+        Explore the world map and select the “ribbons” that pique your curiosity.
+      </p>
+      <div class="horizontal-layout">
+        <div class="map-wrapper">
+          {#if worldGeoJson && GlobalData}
+            <WorldMap geoData={worldGeoJson} data={GlobalData} />
+          {/if}
+        </div>
+        <div class="step-info">
+          <p class="step-description">
+            Adjust filters and choose the countries that shaped cinematic trends—from golden age classics
+            to modern cult favorites.
+          </p>
         </div>
       </div>
     </div>
-
-    <!-- ===================================
-         Step 5: Oscar Wins vs Nominations Heatmap
-         =================================== -->
-    <div class="step" data-step="5">
-      <div class="step-content">
-        <h2>Oscar Wins vs Nominations Heatmap</h2>
-        <!-- Narración Scrollytelling en inglés -->
-        <p class="narrative">
-          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
-          visualize how nominations and wins correlate: each cell groups films with similar numbers of
-          nominations and victories, revealing patterns in cinematic recognition.
-        </p>
-        {#if GlobalData}
-          <TopMovies data={GlobalData} />
-        {/if}
-        
-
-      </div>
-    </div>
-
-    <!-- ===================================
-         Step 6: Oscar Wins vs Nominations Heatmap
-         =================================== -->
-    <div class="step" data-step="6">
-      <div class="step-content">
-        <h2>Oscar Wins vs Nominations Heatmap</h2>
-        <!-- Narración Scrollytelling en inglés -->
-        <p class="narrative">
-          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
-          visualize how nominations and wins correlate: each cell groups films with similar numbers of
-          nominations and victories, revealing patterns in cinematic recognition.
-        </p>
-
-        {#if GlobalData}
-          <Relogio data={GlobalData} width={500} />
-        {/if}
-      </div>
-    </div>
-
-    <!-- ===================================
-         Step 7: Oscar Wins vs Nominations Heatmap
-         =================================== -->
-    <div class="step" data-step="7">
-      <div class="step-content">
-        <h2>Gafico apenas de artistas</h2>
-        <!-- Narración Scrollytelling en inglés -->
-        <p class="narrative">
-          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
-          visualize how nominations and wins correlate: each cell groups films with similar numbers of
-          nominations and victories, revealing patterns in cinematic recognition.
-        </p>
-      </div>
-    </div>
-
   </div>
 
-{:else}
-  <!-- ========================
-       MODO GRAFO COMPLETO
-     ======================== -->
-  <div class="full-graph-container">
-    <button class="back-full-btn" on:click={handleBack}>
-      ← Back to Search
-    </button>
-    {#if selectedMovie}
-      <FilmNetwork movieId={selectedMovie} />
-    {/if}
+  <!-- Step 5: Heatmap -->
+  <div class="step" data-step="5">
+    <div class="step-content">
+      <h2>Oscar Wins vs Nominations Heatmap</h2>
+      <p class="narrative">
+        Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
+        visualize how nominations and wins correlate: each cell groups films with similar numbers of
+        nominations and victories, revealing patterns in cinematic recognition.
+      </p>
+      <Heatmap loadMoviesFullData={loadMoviesLastMovies} mode={heatmapMode} />
+      <div class="mode-controls" style="margin-top: 1rem;">
+        <label><input type="radio" bind:group={heatmapMode} value="exploration" /> Exploration</label>
+        <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="topWins" /> Top Wins</label>
+        <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="topNominations" /> Top Nominations</label>
+      </div>
+    </div>
   </div>
-{/if}
+
+  <!-- Step 6: Top Movies -->
+  <div class="step" data-step="6">
+    <div class="step-content">
+      <h2>Top Oscar Movies</h2>
+      <p class="narrative">
+        Discover the top-performing Oscar films, based on nominations, wins, and global recognition.
+      </p>
+      {#if GlobalData}
+        <TopMovies data={GlobalData} />
+      {/if}
+    </div>
+  </div>
+
+  <!-- Step 7: Timeline -->
+  <div class="step" data-step="7">
+    <div class="step-content">
+      <h2>Oscar Timeline</h2>
+      <p class="narrative">
+        See how Oscar recognition evolved over time and which decades marked major shifts in cinema.
+      </p>
+      {#if GlobalData}
+        <Relogio data={GlobalData} width={500} />
+      {/if}
+    </div>
+  </div>
+
+  <!-- Step 8: Final View -->
+  <div class="step" data-step="8">
+    <div class="step-content">
+      <h2>Artists-Only Network</h2>
+      <p class="narrative">
+        A focused network showing only directors, actors, and writers—no films. Explore pure artistic collaboration.
+      </p>
+      <!-- Puedes insertar otro componente aquí si lo deseas -->
+    </div>
+  </div>
+</div>
+
 
 <style>
   :root {
