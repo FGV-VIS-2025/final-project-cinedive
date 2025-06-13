@@ -11,6 +11,7 @@
   import WorldMap from '$lib/components/WorldMap.svelte';
   import TopMovies from '../lib/charts/TopMovies.svelte';
   import Relogio from '../lib/charts/relogio.svelte';
+  import Elenco from '../lib/charts/Elenco.svelte';
   import { currentStep } from '../store/step';
   import { base } from '$app/paths';
 
@@ -359,6 +360,7 @@
       <div class="step-content">
         <h2>Step 6: Gafico apenas de artistas</h2>
         <!-- Narración Scrollytelling en inglés -->
+         <Elenco></Elenco>
         <p class="narrative">
           Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
           visualize how nominations and wins correlate: each cell groups films with similar numbers of
