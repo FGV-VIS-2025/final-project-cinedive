@@ -132,28 +132,63 @@
   }
 
   function shouldDisplayLink(link) {
-    if (link.role === "director" && !showDirectors) return false;
-    if (link.role === "writer" && !showWriters) return false;
-    if ((link.role === "actor" || link.role === "actress") && !showActors) return false;
+    if (!link.roles || !Array.isArray(link.roles)) return true;
+
+    const roles = link.roles.map(r => r.toLowerCase());
+    if (roles.includes("director") && !showDirectors) return false;
+    if (roles.includes("writer") && !showWriters) return false;
+    if ((roles.includes("actor") || roles.includes("actress")) && !showActors) return false;
+
     return true;
   }
+
 
   function isOscarWinner(node) {
     return node.type === "movie" && node.oscarWins && +node.oscarWins > 0;
   }
 
   function updateGraphVisibility() {
-    d3.selectAll(".link")
-      .style("display", d => shouldDisplayLink(d) ? null : "none");
+    const connectedNodes = new Set();
 
+    // Marcar qué links deben mostrarse
+    d3.selectAll(".link")
+      .style("display", d => {
+        const sourceId = d.source.id || d.source;
+        const targetId = d.target.id || d.target;
+
+        const keepAlways = sourceId === movieId || targetId === movieId;
+
+        if (keepAlways || shouldDisplayLink(d)) {
+          connectedNodes.add(sourceId);
+          connectedNodes.add(targetId);
+          return "inline";
+        }
+        return "none";
+      });
+
+    // Aplicar visibilidad a los nodos
     d3.selectAll(".node")
-      .style("opacity", d => {
-        if (d.type === "person") return 1;
-        if (d.type === "movie" && showOscarWinners) return 1;
-        if (d.type === "movie" && !showOscarWinners && d.oscarWins > 0) return 0.1;
-        return 1;
+      .style("display", d => {
+        // Siempre mostrar el nodo original
+        if (d.id === movieId) return "inline";
+
+        // Si es película ganadora y el filtro está apagado → ocultar
+        if (
+          d.type === "movie" &&
+          !showOscarWinners &&
+          d.oscarWins &&
+          +d.oscarWins > 0
+        ) return "none";
+
+        // Mostrar si está conectado a un link visible
+        if (connectedNodes.has(d.id)) return "inline";
+
+        return "none";
       });
   }
+
+
+
 
   function setupResizeObserver() {
     if (!graphContainerElement) return;
@@ -876,6 +911,8 @@
     cursor: pointer;
     transition: all 0.2s ease;
   }
+
+  
 
   .error-state button:hover {
     background: #d5d5d5;
