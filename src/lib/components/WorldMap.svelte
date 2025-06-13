@@ -20,10 +20,10 @@
   let g;
   let gMap;
 
-  const colorContries = "#9AA287"
+  const colorContries = "#3a3a35"
   const colorFitas = "#606878"
   const colorWins = "#FAD432"
-  const colorNominates = "#7AF9D2"
+  const colorNominates = "#005000"
 
   // preparando dados
 
@@ -85,6 +85,32 @@
     coordinates: [avgLon, avgLat]
   };
   });
+
+  function pontoTangenciaMenorY(x, y, r, a, b) {
+    const dx = a - x;
+    const dy = b - y;
+    const d2 = dx * dx + dy * dy;
+    const d = Math.sqrt(d2);
+
+    if (d <= r) {
+      console.log("nhaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaooooooooooo")
+      throw new Error("O ponto P está dentro ou na borda do círculo");
+    }
+
+    const rx = (r * r * dx) / d2;
+    const ry = (r * r * dy) / d2;
+    const h = r * Math.sqrt(d2 - r * r) / d2;
+
+    const perpX = -dy;
+    const perpY = dx;
+
+    const t1x = x + rx + h * perpX;
+    const t1y = y + ry + h * perpY;
+    const t2x = x + rx - h * perpX;
+    const t2y = y + ry - h * perpY;
+
+    return t1y > t2y ? [t1x, t1y] : [t2x, t2y];
+  }
 
 
 
@@ -351,15 +377,17 @@
     g.selectAll("rect").remove();
     g.selectAll("circle").remove();
     g.selectAll("circle1").remove();
+    g.selectAll("line").remove();
     const ratio = 1.82;
 
     const sizeScalecircle = d3.scaleSqrt()
-      .domain([d3.min(continentBubbles, d => d.circle01), d3.max(continentBubbles, d => d.circle02)]) 
-      .range([2, 10]);
+      .domain([0, d3.max([d3.max(continentBubbles, d => d.circle02 - d.circle01), d3.max(continentBubbles, d => d.circle01)])]) 
+      .range([10, 20]);
+      
 
     const sizeScale = d3.scaleSqrt()
-      .domain([0, d3.max(continentBubbles, d => d.value)]) 
-      .range([10, 46]);
+      .domain([0, d3.max(continentBubbles, d => d.circle02)]) 
+      .range([40, 80]);
 
     // Calcula os centroides dos países do GeoJSON
     const countryCentroids = new Map(
@@ -368,11 +396,51 @@
 
     const preparedData = continentBubbles.map(d => {
       const [x, y] = projection(d.coordinates); // centróide
-      const height = sizeScale(d.value);
+      const height = sizeScale(d.circle02);
       const width = height * ratio;
       return { ...d, x, y, fx: x, fy: y, width, height };
     });
+    const svg = d3.select(svgEl);
+    const defs = svg.append("defs");
+    const mask = defs.append("mask")
+      .attr("id", "myMask");
 
+    mask.append("rect")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("fill", "white");
+
+    const circles1 = mask.selectAll("circle.first")
+      .data(preparedData)
+      .enter()
+      .append("circle")
+      .attr("class", "first")
+      .attr("cx", d => {
+        const [x, _] = currentTransform.apply([d.x, d.y]);
+        return x - d.width / 4;
+      })
+      .attr("cy", d => {
+        const [_, y] = currentTransform.apply([d.x, d.y]);
+        return y + d.height / 14;
+      })
+      .attr("r", d => sizeScalecircle(0)) // usa valor real, não zero
+      .attr("fill", "black");
+
+    const circles2 = mask.selectAll("circle.second")
+      .data(preparedData)
+      .enter()
+      .append("circle")
+      .attr("class", "second")
+      .attr("cx", d => {
+        const [x, _] = currentTransform.apply([d.x, d.y]);
+        return x + d.width / 4;
+      })
+      .attr("cy", d => {
+        const [_, y] = currentTransform.apply([d.x, d.y]);
+        return y + d.height / 14;
+      })
+      .attr("r", d => sizeScalecircle(0)) // usa valor real
+      .attr("fill", "black");
 
     g.selectAll("rect")
       .data(preparedData)
@@ -389,6 +457,7 @@
       .attr("width", d => d.width)
       .attr("height", d => d.height)
       .attr("fill", colorFitas)
+      .attr("mask", "url(#myMask)")
       .attr("opacity", 0.9)
       .attr("stroke", d => {
         const countriesInContinent = geoData.features
@@ -416,7 +485,7 @@
         console.log("fitas:", get(fitas));
       });
 
-    g.selectAll("circle")
+    g.selectAll("circle.left")
     .data(preparedData)
     .enter()
     .append("circle")
@@ -431,9 +500,31 @@
     .attr("r", d => sizeScalecircle(d.circle01))
     .attr("fill", colorWins)
     .attr("opacity", 0.7)
-    .attr("stroke", colorWins);
+    .attr("stroke", colorWins)
+    .attr("mask", "url(#myMask)")
+    .each(d => {
+      const [x, y] = currentTransform.apply([d.x, d.y]);
+      const [a, b] = pontoTangenciaMenorY(x - d.width/4, y + d.height/14, sizeScalecircle(d.circle01), x-d.width/2, y - d.height/3);
 
-    g.selectAll("circle1")
+      g.append("line")
+      .attr("class", "yellow")
+      .attr("x1", a)
+      .attr("y1", b)
+      .attr("x2", x - d.width/2)
+      .attr("y2", y - d.height/3)
+      .attr("stroke", colorWins);
+
+      g.append("line")
+      .attr("class", "yellow")
+      .attr("x1", x)
+      .attr("y1", y - d.height/3)
+      .attr("x2", x - d.width/2)
+      .attr("y2", y - d.height/3)
+      .attr("stroke", colorWins);
+      
+    });
+
+    g.selectAll("circle.right")
     .data(preparedData)
     .enter()
     .append("circle")
@@ -445,10 +536,32 @@
       const [_, y] = currentTransform.apply([d.x, d.y]);
       return y + d.height/14;
     })
-    .attr("r", d => sizeScalecircle(d.circle02))
+    .attr("r", d => sizeScalecircle(d.circle02 - d.circle01))
     .attr("fill", colorNominates)
     .attr("opacity", 0.7)
-    .attr("stroke", colorNominates);
+    .attr("stroke", colorNominates)
+    .attr("mask", "url(#myMask)")
+    .each(d => {
+      const [x, y] = currentTransform.apply([d.x, d.y]);
+      const [a, b] = pontoTangenciaMenorY(x + d.width/4, y + d.height/14, sizeScalecircle(d.circle02 - d.circle01), x+d.width/2, y - d.height/3);
+
+      g.append("line")
+      .attr("class", "green")
+      .attr("x1", a)
+      .attr("y1", b)
+      .attr("x2", x + d.width/2)
+      .attr("y2", y - d.height/3)
+      .attr("stroke", colorNominates);
+
+      g.append("line")
+      .attr("class", "green")
+      .attr("x1", x)
+      .attr("y1", y - d.height/3)
+      .attr("x2", x + d.width/2)
+      .attr("y2", y - d.height/3)
+      .attr("stroke", colorNominates);
+      
+    });
 
     g.selectAll("text.continent-label").remove(); // Remove textos anteriores
 
@@ -468,7 +581,7 @@
       .text(d => d.continent)
       .attr("text-anchor", "middle")
       .attr("font-size", d => Math.max(d.height * 0.25))
-      .attr("fill", "white")
+      .attr("fill", "black")
       .attr("pointer-events", "none") // evita que interfira nos cliques nos retângulos
       .each(function(d) {
         const fontSize = Math.max(8, d.height * 0.2);
@@ -503,10 +616,25 @@
             .attr("text-anchor", "middle")
         });
 
+        const [x, y] = currentTransform.apply([d.x, d.y]);
+
+        const textX = tempText.node().getComputedTextLength()
+        const textY = y - d.height / 4  ;
+
+        // adiciona rect atrás da linha de texto
+        d3.select(this.parentNode)
+          .insert("rect", "text")
+          .attr("x", x - textX / 2 - 4)
+          .attr("y", textY - Math.max(d.height * 0.25) * 0.9)
+          .attr("width", textX + 8)
+          .attr("height", Math.max(d.height * 0.25) * 1.2)
+          .attr("fill", "#aaa")
+          .attr("rx", 3);
+
         // centraliza verticalmente ajustando y inicial
         tempText.attr("y", d => {
           const [_, y] = currentTransform.apply([d.x, d.y]);
-          return y - (lines.length - 1) * lineHeight / 2;
+          return y - d.height/4//- (lines.length - 1) * lineHeight / 2;
         });
       });
 

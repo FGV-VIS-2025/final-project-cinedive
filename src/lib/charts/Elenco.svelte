@@ -53,8 +53,9 @@
 
     const nodeById = new Map(nodes.map(n => [n.id, n]));
     const resolvedLinks = links.map(l => ({
-    source: nodeById.get(l.source),
-    target: nodeById.get(l.target)
+        ...l,
+        source: nodeById.get(l.source),
+        target: nodeById.get(l.target)
     }));
 
     const simulation = d3.forceSimulation(nodes)
@@ -84,7 +85,10 @@
         .selectAll("line")
         .data(resolvedLinks)
         .join("line")
-        .attr("stroke-width", 2)
+        .attr("stroke-width", d => {
+            return (Array.isArray(d.filmes) ? d.filmes.length : 1)
+        }
+        )
         .on("mouseover", (event, d) => {
             tooltipText.text(`${d.source.id} → ${d.target.id}`);
             const textBBox = tooltipText.node().getBBox();
@@ -106,12 +110,12 @@
 
     const node = svg.append("g")
         .attr("stroke", "#fff")
-        .attr("stroke-width", 1.5)
+        .attr("stroke-width", 0)
         .selectAll("circle")
         .data(nodes)
         .join("circle")
         .attr("r", 8)
-        .attr("fill", d => selectedSet.has(d.id) ? "steelblue" : "#888")
+        .attr("fill", d => selectedSet.has(d.id) ? "gold" : "#888")
         .call(drag(simulation))
         .on("click", (event, d) => {
             pessoasSelecionadas.toggle(d.id);
@@ -209,10 +213,5 @@
 
   .graph-panel {
     flex-grow: 1;
-  }
-
-  svg {
-    border: 1px solid #ccc;
-    background: white;
   }
 </style>

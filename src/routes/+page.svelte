@@ -693,7 +693,7 @@
   .map-wrapper,
   .step-info {
     flex: 1;
-    min-width: 300px;
+    min-width: 900;
   }
 
   .map-wrapper {

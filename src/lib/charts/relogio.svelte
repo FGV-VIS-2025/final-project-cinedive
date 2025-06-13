@@ -63,7 +63,7 @@ function polarToCartesian(theta, r) {
       .join("circle")
       .attr("r", d => r(d))
       .attr("fill", "none")
-      .attr("stroke", "#ccc");
+      .attr("stroke", "#cc8");
 
     gr.selectAll("text")
       .data(rTicks)
@@ -84,7 +84,7 @@ function polarToCartesian(theta, r) {
       .attr("y1", 0)
       .attr("x2", d => Math.cos(angle(d) - Math.PI / 2) * radius)
       .attr("y2", d => Math.sin(angle(d) - Math.PI / 2) * radius)
-      .attr("stroke", "#ccc");
+      .attr("stroke", "#cc8");
 
     ga.selectAll("text")
       .data(aTicks)
@@ -93,6 +93,7 @@ function polarToCartesian(theta, r) {
       .attr("y", d => Math.sin(angle(d) - Math.PI / 2) * (radius + 10))
       .attr("text-anchor", "middle")
       .attr("font-size", "10px")
+      .attr("fill", "#cc8")
       .text(d => d);
 
     const points = cleaned.map(d => {
@@ -110,7 +111,7 @@ function polarToCartesian(theta, r) {
 
     const bins = hexbin(points);
 
-    const color = d3.scaleSequential(d3.interpolateYlGnBu)
+    const color = d3.scaleSequential(d3.interpolateInferno)
       .domain([0, d3.max(bins, b => b.length)]);
 
 
@@ -132,8 +133,59 @@ function polarToCartesian(theta, r) {
       .attr("cx", d => Math.cos(angle(d[angleFeature]) - Math.PI / 2) * r(d[radiusFeature]))
       .attr("cy", d => Math.sin(angle(d[angleFeature]) - Math.PI / 2) * r(d[radiusFeature]))
       .attr("r", 3)
-      .attr("fill", "#69b3a2")
-      .attr("opacity", 0.7);
+      .attr("fill", "#F9AC21")
+      .attr("opacity", 0.1);
+
+
+    // Legenda de cor
+    const legendHeight = 400;
+    const legendWidth = 50;
+    const legendMargin = 10;
+    const legendX = radius + 30;  // posição à direita do gráfico
+    const legendY = -legendHeight / 2;
+
+    // Gradiente
+    const defs = svg.append("defs");
+    const gradient = defs.append("linearGradient")
+      .attr("id", "color-gradient")
+      .attr("x1", "0%")
+      .attr("y1", "100%")
+      .attr("x2", "0%")
+      .attr("y2", "0%");
+
+    const colorSteps = 10;
+    const maxDensity = d3.max(bins, b => b.length);
+    for (let i = 0; i <= colorSteps; i++) {
+      const t = i / colorSteps;
+      gradient.append("stop")
+        .attr("offset", `${t * 100}%`)
+        .attr("stop-color", color(t * maxDensity));
+    }
+
+    // Retângulo com o gradiente
+    g.append("rect")
+      .attr("x", legendX)
+      .attr("y", legendY)
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
+      .style("fill", "url(#color-gradient)");
+
+    // Escala e eixo da legenda
+    const legendScale = d3.scaleLinear()
+      .domain([0, maxDensity])
+      .range([legendHeight, 0]);
+
+    const legendAxis = d3.axisLeft(legendScale)
+      .ticks(5)
+      .tickSize(3);
+
+    g.append("g")
+      .attr("transform", `translate(${legendX }, ${legendY})`)
+      .call(legendAxis)
+      .call(g => g.selectAll("line").attr("stroke", "#cc8"))
+      .selectAll("text")
+      .style("font-size", "10px")
+      .style("fill", "#cc8");
   }
 
   onMount(draw);

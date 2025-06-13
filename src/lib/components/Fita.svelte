@@ -18,14 +18,15 @@
 
   const startpx = 0;
   const startpy = 50;
-  const startx = 25;
+  const startx = 35 - 10;
   const starty = 140;
-  const colorfita = "#1a1a2e";
-  const colorframe = "#16213e";
+  const colorfita = "#1f1300";
+  const colorborda = "#101000";
+  const colorframe = "#332";
   const projectorColor = "#2c2c54";
-  const projectorAccent = "#40407a";
+  const projectorAccent = "#cc8";
   const highlightColor = "#ffd700";
-  const filmHoleColor = "#0f3460";
+  const filmHoleColor = "#aaaaaa00";
 
   function drawSvg(step) {
     const a = step
@@ -49,12 +50,12 @@
 
     projectorGradient.append("stop")
       .attr("offset", "0%")
-      .attr("stop-color", "#40407a")
+      .attr("stop-color", "#aa9")
       .attr("stop-opacity", 1);
 
     projectorGradient.append("stop")
       .attr("offset", "100%")
-      .attr("stop-color", "#2c2c54")
+      .attr("stop-color", "#664")
       .attr("stop-opacity", 1);
 
     // Gradiente para la película
@@ -67,17 +68,17 @@
 
     filmGradient.append("stop")
       .attr("offset", "0%")
-      .attr("stop-color", "#0f3460")
+      .attr("stop-color", "#000000")
       .attr("stop-opacity", 1);
 
     filmGradient.append("stop")
       .attr("offset", "50%")
-      .attr("stop-color", "#1a1a2e")
+      .attr("stop-color", "#000")
       .attr("stop-opacity", 1);
 
     filmGradient.append("stop")
       .attr("offset", "100%")
-      .attr("stop-color", "#0f3460")
+      .attr("stop-color", "#000")
       .attr("stop-opacity", 1);
 
     // Filtro de sombra
@@ -118,7 +119,7 @@
     // Agujeros de la película
     for (let i = 1; i*22 < howmany * 40 + 4; i++){
         mask.append("rect")
-            .attr("x", startx + 12)
+            .attr("x", startx + 12 - 5)
             .attr("y", starty + i*22 - 10)
             .attr("width", 12)
             .attr("height", 10)
@@ -126,7 +127,7 @@
             .attr("fill", "black");
 
         mask.append("rect")
-            .attr("x", startx + 116)
+            .attr("x", startx + 116 - 5)
             .attr("y", starty + i*22 - 10)
             .attr("width", 12)
             .attr("height", 10)
@@ -208,11 +209,11 @@
       .attr("class", "film-strip")
       .attr("x", startx)
       .attr("y", starty)
-      .attr("width", 140)
+      .attr("width", 140 - 10)
       .attr("height", howmany * 40 + 4)
       .attr("rx", 3)
-      .attr("fill", "url(#filmGradient)")
-      .attr("stroke", "#0f3460")
+      .attr("fill", colorfita)
+      .attr("stroke", colorborda)
       .attr("stroke-width", 2)
       .attr("mask", "url(#hole-mask)")
       .attr("filter", "url(#dropshadow)");
@@ -223,7 +224,7 @@
         
         svg.append("rect")
             .attr("class", "frame")
-            .attr("x", startx + 28)
+            .attr("x", startx + 28 -5)
             .attr("y", starty + 4 + 40*i)
             .attr("width", 84)
             .attr("height", 36)
@@ -255,7 +256,7 @@
         // Añadir número de frame
         if (isActive) {
             svg.append("text")
-                .attr("x", startx + 70)
+                .attr("x", startx + 70 - 5)
                 .attr("y", starty + 24 + 40*i)
                 .attr("text-anchor", "middle")
                 .attr("fill", highlightColor)
@@ -269,23 +270,23 @@
     // Agujeros de perfil de la película con mejor estilo
     for (let i = 1; i * 22 < howmany * 40 + 4; i++) {
       svg.append("rect")
-        .attr("x", startx + 12)
+        .attr("x", startx + 12 -5)
         .attr("y", starty + i * 22 - 10)
         .attr("width", 12)
         .attr("height", 10)
         .attr("rx", 2)
         .attr("fill", filmHoleColor)
-        .attr("stroke", "#0f3460")
+        .attr("stroke", colorborda)
         .attr("stroke-width", 1);
 
       svg.append("rect")
-        .attr("x", startx + 116)
+        .attr("x", startx + 116 -5)
         .attr("y", starty + i * 22 - 10)
         .attr("width", 12)
         .attr("height", 10)
         .attr("rx", 2)
         .attr("fill", filmHoleColor)
-        .attr("stroke", "#0f3460")
+        .attr("stroke", colorborda)
         .attr("stroke-width", 1);
     }
 
