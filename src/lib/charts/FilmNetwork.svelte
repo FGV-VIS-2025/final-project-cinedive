@@ -824,10 +824,10 @@
             </div>
           </div>
           <div class="controls">
-            <label><input type="checkbox" bind:checked={showDirectors} on:change={updateGraphVisibility}> Directores</label>
-            <label><input type="checkbox" bind:checked={showWriters} on:change={updateGraphVisibility}> Guionistas</label>
-            <label><input type="checkbox" bind:checked={showActors} on:change={updateGraphVisibility}> Actores</label>
-            <label><input type="checkbox" bind:checked={showOscarWinners} on:change={updateGraphVisibility}> Ganadores del Oscar</label>
+            <label><input type="checkbox" bind:checked={showDirectors} on:change={updateGraphVisibility}> Directors</label>
+            <label><input type="checkbox" bind:checked={showWriters} on:change={updateGraphVisibility}> Writers</label>
+            <label><input type="checkbox" bind:checked={showActors} on:change={updateGraphVisibility}> Actors</label>
+            <label><input type="checkbox" bind:checked={showOscarWinners} on:change={updateGraphVisibility}> Oscar Winners</label>
           </div>
 
           <div class="legend">
