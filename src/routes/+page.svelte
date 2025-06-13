@@ -9,9 +9,9 @@
   import Fita from '$lib/components/Fita.svelte';
   import Heatmap from '$lib/charts/heatmap.svelte';
   import WorldMap from '$lib/components/WorldMap.svelte';
-  import TopMovies from '../lib/charts/TopMovies.svelte';
-  import Relogio from '../lib/charts/relogio.svelte';
-  import Elenco from '../lib/charts/Elenco.svelte';
+  import TopMovies from '$lib/charts/TopMovies.svelte';
+  import Relogio from '$lib/charts/relogio.svelte';
+  import Elenco from '$lib/charts/Elenco.svelte';
   import { currentStep } from '../store/step';
   import { base } from '$app/paths';
 

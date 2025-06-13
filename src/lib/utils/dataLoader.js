@@ -75,12 +75,13 @@ export async function loadGraph() {
   }
   
 
-let cachedMoviesData = null;
+
+let personData = null;
 
 export async function getPersonGraph(params) {
-	if (cachedGraph) {
+	if (personData) {
 	  console.log('Using cached graph data');
-	  return cachedGraph;
+	  return personData;
 	}
   
 	const res = await fetch(`${base}/data/graphic_person.json`);
@@ -90,9 +91,11 @@ export async function getPersonGraph(params) {
 	}
 	const data = await res.json();
 	console.log("✅ loadGraph(): JSON cargado, nodos:", data.nodes.length, "enlaces:", data.links.length);
-	cachedGraph = data;
-	return cachedGraph;
+	personData = data;
+	return personData;
 }
+
+let cachedMoviesData = null;
 
 export async function loadMoviesFullData() {
 	if (cachedMoviesData) {
