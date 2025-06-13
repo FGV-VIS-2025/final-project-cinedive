@@ -21,6 +21,10 @@
   let simulation = null;
   let isLoading = true;
   let loadError = null;
+  let showDirectors = true;
+  let showWriters = true;
+  let showActors = true;
+  let showOscarWinners = true;
 
   // Estado de filtros
   let filters = {
@@ -126,6 +130,65 @@
       isLoading = false;
     }
   }
+
+  function shouldDisplayLink(link) {
+    if (!link.roles || !Array.isArray(link.roles)) return true;
+
+    const roles = link.roles.map(r => r.toLowerCase());
+    if (roles.includes("director") && !showDirectors) return false;
+    if (roles.includes("writer") && !showWriters) return false;
+    if ((roles.includes("actor") || roles.includes("actress")) && !showActors) return false;
+
+    return true;
+  }
+
+
+  function isOscarWinner(node) {
+    return node.type === "movie" && node.oscarWins && +node.oscarWins > 0;
+  }
+
+  function updateGraphVisibility() {
+    const connectedNodes = new Set();
+
+    // Marcar qué links deben mostrarse
+    d3.selectAll(".link")
+      .style("display", d => {
+        const sourceId = d.source.id || d.source;
+        const targetId = d.target.id || d.target;
+
+        const keepAlways = sourceId === movieId || targetId === movieId;
+
+        if (keepAlways || shouldDisplayLink(d)) {
+          connectedNodes.add(sourceId);
+          connectedNodes.add(targetId);
+          return "inline";
+        }
+        return "none";
+      });
+
+    // Aplicar visibilidad a los nodos
+    d3.selectAll(".node")
+      .style("display", d => {
+        // Siempre mostrar el nodo original
+        if (d.id === movieId) return "inline";
+
+        // Si es película ganadora y el filtro está apagado → ocultar
+        if (
+          d.type === "movie" &&
+          !showOscarWinners &&
+          d.oscarWins &&
+          +d.oscarWins > 0
+        ) return "none";
+
+        // Mostrar si está conectado a un link visible
+        if (connectedNodes.has(d.id)) return "inline";
+
+        return "none";
+      });
+  }
+
+
+
 
   function setupResizeObserver() {
     if (!graphContainerElement) return;
@@ -598,6 +661,8 @@
     currentGraph = subgraph;
     drawGraph(subgraph);
     drawBarChart(subgraph.nodes);
+    updateGraphVisibility();
+
   }
 </script>
 
@@ -750,6 +815,13 @@
               {currentGraph.nodes.length} nodes • {currentGraph.links.length} connections
             </div>
           </div>
+          <div class="controls">
+            <label><input type="checkbox" bind:checked={showDirectors} on:change={updateGraphVisibility}> Directores</label>
+            <label><input type="checkbox" bind:checked={showWriters} on:change={updateGraphVisibility}> Guionistas</label>
+            <label><input type="checkbox" bind:checked={showActors} on:change={updateGraphVisibility}> Actores</label>
+            <label><input type="checkbox" bind:checked={showOscarWinners} on:change={updateGraphVisibility}> Ganadores del Oscar</label>
+          </div>
+
           <div class="legend">
             <div class="legend-item">
               <div class="legend-symbol circle movie"></div>
@@ -839,6 +911,8 @@
     cursor: pointer;
     transition: all 0.2s ease;
   }
+
+  
 
   .error-state button:hover {
     background: #d5d5d5;
@@ -1178,6 +1252,22 @@
   .legend-line.actor {
     background: #ff7f0e;
   }
+
+  .controls {
+    display: flex;
+    gap: 1em;
+    align-items: center;
+    padding: 10px;
+    background: #fafafa;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.9em;
+  }
+  .controls label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
 
   /* Responsividad */
   @media (max-width: 1024px) {
