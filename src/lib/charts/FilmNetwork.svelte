@@ -21,6 +21,10 @@
   let simulation = null;
   let isLoading = true;
   let loadError = null;
+  let showDirectors = true;
+  let showWriters = true;
+  let showActors = true;
+  let showOscarWinners = true;
 
   // Estado de filtros
   let filters = {
@@ -125,6 +129,30 @@
       loadError = 'Failed to load network data. Please try again.';
       isLoading = false;
     }
+  }
+
+  function shouldDisplayLink(link) {
+    if (link.role === "director" && !showDirectors) return false;
+    if (link.role === "writer" && !showWriters) return false;
+    if ((link.role === "actor" || link.role === "actress") && !showActors) return false;
+    return true;
+  }
+
+  function isOscarWinner(node) {
+    return node.type === "movie" && node.oscarWins && +node.oscarWins > 0;
+  }
+
+  function updateGraphVisibility() {
+    d3.selectAll(".link")
+      .style("display", d => shouldDisplayLink(d) ? null : "none");
+
+    d3.selectAll(".node")
+      .style("opacity", d => {
+        if (d.type === "person") return 1;
+        if (d.type === "movie" && showOscarWinners) return 1;
+        if (d.type === "movie" && !showOscarWinners && d.oscarWins > 0) return 0.1;
+        return 1;
+      });
   }
 
   function setupResizeObserver() {
@@ -598,6 +626,8 @@
     currentGraph = subgraph;
     drawGraph(subgraph);
     drawBarChart(subgraph.nodes);
+    updateGraphVisibility();
+
   }
 </script>
 
@@ -750,6 +780,13 @@
               {currentGraph.nodes.length} nodes • {currentGraph.links.length} connections
             </div>
           </div>
+          <div class="controls">
+            <label><input type="checkbox" bind:checked={showDirectors} on:change={updateGraphVisibility}> Directores</label>
+            <label><input type="checkbox" bind:checked={showWriters} on:change={updateGraphVisibility}> Guionistas</label>
+            <label><input type="checkbox" bind:checked={showActors} on:change={updateGraphVisibility}> Actores</label>
+            <label><input type="checkbox" bind:checked={showOscarWinners} on:change={updateGraphVisibility}> Ganadores del Oscar</label>
+          </div>
+
           <div class="legend">
             <div class="legend-item">
               <div class="legend-symbol circle movie"></div>
@@ -1178,6 +1215,22 @@
   .legend-line.actor {
     background: #ff7f0e;
   }
+
+  .controls {
+    display: flex;
+    gap: 1em;
+    align-items: center;
+    padding: 10px;
+    background: #fafafa;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.9em;
+  }
+  .controls label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
 
   /* Responsividad */
   @media (max-width: 1024px) {
