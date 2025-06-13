@@ -4,7 +4,7 @@
   import MultiSelect from '$lib/components/MultiSelect.svelte';  // Importe o componente
   import { pessoasSelecionadas } from '../../store/people';  // Importe o store para controle de pessoas selecionadas
   import { derived } from 'svelte/store';
-  import * as d3 from 'd3';
+  import * as d3 from 'd3'; //comentario para pull request
 
   let svgEl;
   let data = null;
