@@ -9,8 +9,9 @@
   import Fita from '$lib/components/Fita.svelte';
   import Heatmap from '$lib/charts/heatmap.svelte';
   import WorldMap from '$lib/components/WorldMap.svelte';
-  import TopMovies from '../lib/charts/TopMovies.svelte';
-  import Relogio from '../lib/charts/relogio.svelte';
+  import TopMovies from '$lib/charts/TopMovies.svelte';
+  import Relogio from '$lib/charts/relogio.svelte';
+  import Elenco from '$lib/charts/Elenco.svelte';
   import { currentStep } from '../store/step';
   import { base } from '$app/paths';
 
@@ -320,16 +321,21 @@
     </div>
   </div>
 
-  <!-- Step 8: Final View -->
+    <!-- ===================================
+         Step 6: Oscar Wins vs Nominations Heatmap
+         =================================== -->
   <div class="step" data-step="8">
-    <div class="step-content">
-      <h2>Artists-Only Network</h2>
-      <p class="narrative">
-        A focused network showing only directors, actors, and writers—no films. Explore pure artistic collaboration.
-      </p>
-      <!-- Puedes insertar otro componente aquí si lo deseas -->
+      <div class="step-content">
+        <h2>Grafico apenas de artistas</h2>
+        <!-- Narración Scrollytelling en inglés -->
+         <Elenco></Elenco>
+        <p class="narrative">
+          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
+          visualize how nominations and wins correlate: each cell groups films with similar numbers of
+          nominations and victories, revealing patterns in cinematic recognition.
+        </p>
+      </div>
     </div>
-  </div>
 </div>
 
 

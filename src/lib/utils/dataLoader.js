@@ -75,6 +75,26 @@ export async function loadGraph() {
   }
   
 
+
+let personData = null;
+
+export async function getPersonGraph(params) {
+	if (personData) {
+	  console.log('Using cached graph data');
+	  return personData;
+	}
+  
+	const res = await fetch(`${base}/data/graphic_person.json`);
+	if (!res.ok) {
+	  console.error("❌ No se pudo cargar graph_for_project.json:", res.status);
+	  throw new Error("Graph JSON not found");
+	}
+	const data = await res.json();
+	console.log("✅ loadGraph(): JSON cargado, nodos:", data.nodes.length, "enlaces:", data.links.length);
+	personData = data;
+	return personData;
+}
+
 let cachedMoviesData = null;
 
 export async function loadMoviesFullData() {
