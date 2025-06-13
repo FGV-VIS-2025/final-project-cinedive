@@ -139,9 +139,17 @@
     if (roles.includes("writer") && !showWriters) return false;
     if ((roles.includes("actor") || roles.includes("actress")) && !showActors) return false;
 
+    if (!showOscarWinners) {
+      // link.source y link.target suelen ser objetos nodo en la visualización
+      const src = link.source;
+      const tgt = link.target;
+      const srcWins = src.oscarWins != null && +src.oscarWins > 0;
+      const tgtWins = tgt.oscarWins != null && +tgt.oscarWins > 0;
+      if (srcWins || tgtWins) return false;
+    }
+
     return true;
   }
-
 
   function isOscarWinner(node) {
     return node.type === "movie" && node.oscarWins && +node.oscarWins > 0;
@@ -156,9 +164,8 @@
         const sourceId = d.source.id || d.source;
         const targetId = d.target.id || d.target;
 
-        const keepAlways = sourceId === movieId || targetId === movieId;
-
-        if (keepAlways || shouldDisplayLink(d)) {
+        // Ya no forzamos mostrar enlaces de movieId: aplicamos siempre shouldDisplayLink
+        if (shouldDisplayLink(d)) {
           connectedNodes.add(sourceId);
           connectedNodes.add(targetId);
           return "inline";
@@ -169,8 +176,11 @@
     // Aplicar visibilidad a los nodos
     d3.selectAll(".node")
       .style("display", d => {
-        // Siempre mostrar el nodo original
+        // Nodo raíz: opcionalmente decidir si siempre mostrarlo o también filtrarlo.
+        // Si quieres que el nodo raíz también pueda ocultarse según filtros, reemplaza esta línea:
         if (d.id === movieId) return "inline";
+        // por algo como:
+        // if (d.id === movieId && !passesFilters(d)) return "none";
 
         // Si es película ganadora y el filtro está apagado → ocultar
         if (
@@ -186,8 +196,6 @@
         return "none";
       });
   }
-
-
 
 
   function setupResizeObserver() {
