@@ -4,7 +4,7 @@
   import { hexbin as d3Hexbin } from 'd3-hexbin';
 
   export let data = [];
-  export let width = 500;
+  export let width = 600;
 
   let svgEl;
 
@@ -16,8 +16,14 @@
     "numVotes",
   ];
 
+  const optiosPlot = [
+    "heatMap",
+    "points"
+  ]
+
   let angleFeature = "runtimeMinutes";
   let radiusFeature = "numVotes";
+  let PlotMethod = "heatMap"
 
 function polarToCartesian(theta, r) {
   return [
@@ -114,8 +120,12 @@ function polarToCartesian(theta, r) {
     const color = d3.scaleSequential(d3.interpolateInferno)
       .domain([0, d3.max(bins, b => b.length)]);
 
+   
 
-    g.append("g")
+    
+
+    if (PlotMethod === "heatMap") {
+      g.append("g")
       .attr("class", "density")
       .selectAll("path")
       .data(bins)
@@ -124,9 +134,60 @@ function polarToCartesian(theta, r) {
       .attr("fill", d => color(d.length))
       .attr("stroke", "none")
       .attr("opacity", 0.6);
+    
 
-    // Pontos
-    g.selectAll("circle.dot")
+      // Legenda de cor
+      const legendHeight = 400;
+      const legendWidth = 50;
+      const legendMargin = 10;
+      const legendX = radius + 30;  // posição à direita do gráfico
+      const legendY = -legendHeight / 2;
+
+      // Gradiente
+      const defs = svg.append("defs");
+      const gradient = defs.append("linearGradient")
+        .attr("id", "color-gradient")
+        .attr("x1", "0%")
+        .attr("y1", "100%")
+        .attr("x2", "0%")
+        .attr("y2", "0%");
+
+      const colorSteps = 10;
+      const maxDensity = d3.max(bins, b => b.length);
+      for (let i = 0; i <= colorSteps; i++) {
+        const t = i / colorSteps;
+        gradient.append("stop")
+          .attr("offset", `${t * 100}%`)
+          .attr("stop-color", color(t * maxDensity));
+      }
+
+      // Retângulo com o gradiente
+      g.append("rect")
+        .attr("x", legendX)
+        .attr("y", legendY)
+        .attr("width", legendWidth)
+        .attr("height", legendHeight)
+        .style("fill", "url(#color-gradient)");
+
+      // Escala e eixo da legenda
+      const legendScale = d3.scaleLinear()
+        .domain([0, maxDensity])
+        .range([legendHeight, 0]);
+
+      const legendAxis = d3.axisLeft(legendScale)
+        .ticks(5)
+        .tickSize(3);
+
+      g.append("g")
+        .attr("transform", `translate(${legendX }, ${legendY})`)
+        .call(legendAxis)
+        .call(g => g.selectAll("line").attr("stroke", "#cc8"))
+        .selectAll("text")
+        .style("font-size", "10px")
+        .style("fill", "#cc8");
+    } else {
+      // Pontos
+      g.selectAll("circle.dot")
       .data(cleaned)
       .join("circle")
       .attr("class", "dot")
@@ -136,56 +197,10 @@ function polarToCartesian(theta, r) {
       .attr("fill", "#F9AC21")
       .attr("opacity", 0.1);
 
-
-    // Legenda de cor
-    const legendHeight = 400;
-    const legendWidth = 50;
-    const legendMargin = 10;
-    const legendX = radius + 30;  // posição à direita do gráfico
-    const legendY = -legendHeight / 2;
-
-    // Gradiente
-    const defs = svg.append("defs");
-    const gradient = defs.append("linearGradient")
-      .attr("id", "color-gradient")
-      .attr("x1", "0%")
-      .attr("y1", "100%")
-      .attr("x2", "0%")
-      .attr("y2", "0%");
-
-    const colorSteps = 10;
-    const maxDensity = d3.max(bins, b => b.length);
-    for (let i = 0; i <= colorSteps; i++) {
-      const t = i / colorSteps;
-      gradient.append("stop")
-        .attr("offset", `${t * 100}%`)
-        .attr("stop-color", color(t * maxDensity));
     }
 
-    // Retângulo com o gradiente
-    g.append("rect")
-      .attr("x", legendX)
-      .attr("y", legendY)
-      .attr("width", legendWidth)
-      .attr("height", legendHeight)
-      .style("fill", "url(#color-gradient)");
 
-    // Escala e eixo da legenda
-    const legendScale = d3.scaleLinear()
-      .domain([0, maxDensity])
-      .range([legendHeight, 0]);
-
-    const legendAxis = d3.axisLeft(legendScale)
-      .ticks(5)
-      .tickSize(3);
-
-    g.append("g")
-      .attr("transform", `translate(${legendX }, ${legendY})`)
-      .call(legendAxis)
-      .call(g => g.selectAll("line").attr("stroke", "#cc8"))
-      .selectAll("text")
-      .style("font-size", "10px")
-      .style("fill", "#cc8");
+    
   }
 
   onMount(draw);
@@ -207,6 +222,15 @@ function polarToCartesian(theta, r) {
     Raio:
     <select bind:value={radiusFeature}>
       {#each featureOptions as feature}
+        <option value={feature}>{feature}</option>
+      {/each}
+    </select>
+  </label>
+
+  <label style="margin-left: 1rem;">
+    Raio:
+    <select bind:value={PlotMethod}>
+      {#each optiosPlot as feature}
         <option value={feature}>{feature}</option>
       {/each}
     </select>

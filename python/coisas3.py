@@ -1,7 +1,7 @@
 import json
 import csv
 
-with open('/home/ximena/Documentos/repos/final-project-cinedive/static/data/graph_full_cleaned.json', 'r') as f:
+with open('./static/data/graph_full_cleaned.json', 'r', encoding='utf-8') as f:
      data = json.load(f)
 
 
@@ -9,11 +9,11 @@ with open('/home/ximena/Documentos/repos/final-project-cinedive/static/data/grap
 movie_lookup = {n["id"]: n for n in data["nodes"] if n["type"] == "movie"}
 person_lookup = {n["id"]: n for n in data["nodes"] if n["type"] == "person"}
 
-with open('/home/ximena/Documentos/repos/final-project-cinedive/static/data/radial_people.csv', 'w', newline='', encoding='utf-8') as f:
+with open('./static/data/radial_people.csv', 'w', newline='', encoding='utf-8') as f:
     writer = csv.writer(f)
     writer.writerow([
         "personId", "personName", "movieId", "movieTitle", "year",
-        "averageRating", "numVotes", "oscarNominations", "oscarWins", "role"
+        "averageRating", "numVotes", "oscarNominations", "oscarWins", "role", "country_origin"
     ])
 
     for link in data["links"]:
@@ -38,5 +38,7 @@ with open('/home/ximena/Documentos/repos/final-project-cinedive/static/data/radi
             movie.get("numVotes", ""),
             movie.get("oscarNominations", ""),
             movie.get("oscarWins", ""),
-            role
+            role,
+            movie.get("country_origin", "")
+            
         ])
