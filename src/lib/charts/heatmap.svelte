@@ -5,6 +5,7 @@
 
 	export let loadMoviesFullData;
 	export let mode;
+	export let movieTconst;
 
 	console.log('Heatmap mode:', mode);
 
@@ -13,9 +14,9 @@
 	let heatmapData = [];
 	let loading = true;
 
-  // cada elemento terá { nominations, wins, movies: [...] }
-  let selectedCells = [];
-  // Para guardar referências das células no SVG
+  	// cada elemento terá { nominations, wins, movies: [...] }
+ 	let selectedCells = [];
+  	// Para guardar referências das células no SVG
 	let cellElements = new Map(); 
 
 	// Configurações do heatmap
@@ -48,6 +49,10 @@
 	}
 
 	$: if (mode) {
+		applyModeSelection();
+	}
+
+	$: if (movieTconst) {
 		applyModeSelection();
 	}
 
@@ -198,7 +203,7 @@
     });
 
     // Guarda as referências para poder atualizar seleção depois
-		cells.each(function(d) {
+	cells.each(function(d) {
       const cell = d3.select(this);
 			const key = `${d.nominations}-${d.wins}`;
 
@@ -359,6 +364,7 @@
 		});
 
 		if (mode === 'exploration') {
+			selectedCells = [];
 			return;
 		}
 
@@ -374,6 +380,21 @@
 		}
 		else if (mode === 'diagonal') {
 			cellsToSelect = heatmapData.filter(d => d.nominations === d.wins);
+		}
+		else if (mode === 'selectedmovie') {
+			console.log("Heatmap: selected movieTconst=", movieTconst);
+			if (!movieTconst) {
+				console.warn('Heatmap: No movieTconst provided for selectedmovie mode');
+				return;
+			}
+			// Busca o filme pelo ID
+			const movieData = data.find(d => d.tconst === movieTconst);
+			if (movieData) {
+				cellsToSelect = heatmapData.filter(d => 
+					d.nominations === movieData.oscarNominations &&
+					d.wins === movieData.oscarWins
+				);
+			}
 		}
 
 		const selectedGroups = [];
