@@ -80,8 +80,8 @@
   return {
     continent,
     value: totalRating,
-    circle01: totalWins,
-    circle02: totalNominations,
+    wins: totalWins,
+    nominations: totalNominations,
     coordinates: [avgLon, avgLat]
   };
   });
@@ -181,226 +181,19 @@
     updateView()
   }
 
-  function drawCountries () {
+  function drawFitas (data, nivel) {
     g.selectAll("rect").remove();
     g.selectAll("circle").remove();
-    g.selectAll("circle1").remove();
-    const ratio = 1.82;
-
-
-
-    const sizeScalecircle = d3.scaleSqrt()
-      .domain([d3.min(bubbleData, d => d.wins), d3.max(bubbleData, d => d.nominations)]) 
-      .range([0, 10]);
-
-    const sizeScale = d3.scaleSqrt()
-      .domain([0, d3.max(bubbleData, d => d.nominations)]) 
-      .range([24, 50]);
-
-    // Calcula os centroides dos países do GeoJSON
-    const countryCentroids = new Map(
-      geoData.features.map(f => [f.properties.sovereignt, pathGenerator.centroid(f)])
-    );
-
-    let preparedData2 = bubbleData
-      .map(d => {
-        const rawCentroid = countryCentroids.get(d.country);
-        if (!rawCentroid) return null;
-        const [x, y] = rawCentroid;
-        const height = sizeScale(d.nominations);
-        const width = height * ratio;
-        const radius = Math.sqrt(width * width + height * height) / 2;
-        return { ...d, x, y, width, height, radius };
-      })
-      .filter(d => d !== null);
-
-    // Simulação de colisão
-    const simulation = d3.forceSimulation(preparedData2)
-      .force("x", d3.forceX(d => d.x ).strength(0.9))
-      .force("y", d3.forceY(d => d.y ).strength(0.9))
-      .force("collision", d3.forceCollide(d => d.radius / currentZoom + 1)) // padding extra de 1px
-      .stop();
-
-    // Roda a simulação por alguns ticks
-    for (let i = 0; i < 10; ++i) simulation.tick();
-
-    preparedData2 = [...preparedData2]; // força reatividade
-
-    console.log("preparedData2", preparedData2);
-
-    const radiusScale = d3.scaleSqrt()
-      .domain([0, d3.max(bubbleData, d => d.nominations)])
-      .range([0, 20]);
-
-     // Desenha as bolhas
-    // g.selectAll("circle")
-    //   .data(preparedData2)
-    //   .enter()
-    //   .append("circle")
-    //   .attr("cx", d => {
-    //     const centroid = countryCentroids.get(d.country);
-    //     return centroid ? centroid[0] : -9999; // esconde se não encontrado
-    //   })
-    //   .attr("cy", d => {
-    //     const centroid = countryCentroids.get(d.country);
-    //     return centroid ? centroid[1] : -9999;
-    //   })
-    //   .attr("r", d => radiusScale(d.nominations))
-    //   .attr("fill", "steelblue")
-    //   .attr("opacity", 0.7)
-    //   .attr("stroke", "#222");
-
-    
-    g.selectAll("rect")
-      .data(preparedData2)
-      .enter()
-      .append("rect")
-      .attr("x", (d) => {
-        const [x, _] = currentTransform.apply([d.x, d.y]);
-        return x - d.width / 2;
-      })
-      .attr("y", (d) => {
-        const [_, y] = currentTransform.apply([d.x, d.y]);
-        return y - d.height / 2;
-      })
-      .attr("width", d => d.width)
-      .attr("height", d => d.height)
-      .attr("fill", colorFitas)
-      .attr("opacity", 0.7)
-      .attr("stroke", d => get(fitas).has(d.country) ? "gold" : null)
-      .on("click", (event, d) => {
-        fitas.toggle(d.country);  // seu método da store que adiciona/remove reativamente
-        drawCountries(); // redesenha para atualizar a cor
-        console.log("fitas:", get(fitas)); // pega snapshot atual
-      });
-
-    g.selectAll("circle")
-      .data(preparedData2)
-      .enter()
-      .append("circle")
-      .attr("cx", d => {
-        const [x, _] = currentTransform.apply([d.x, d.y]);
-        return x - d.width/4;
-      })
-      .attr("cy", d => {
-        const [_, y] = currentTransform.apply([d.x, d.y]);
-        return y + d.height/14;
-      })
-      .attr("r", d => sizeScalecircle(d.wins))
-      .attr("fill", colorWins)
-      .attr("opacity", 0.7)
-      .attr("stroke", colorWins);
-
-    g.selectAll("circle1")
-    .data(preparedData2)
-    .enter()
-    .append("circle")
-    .attr("class", "circle1")
-    .attr("cx", d => {
-      const [x, _] = currentTransform.apply([d.x, d.y]);
-      return x + d.width/4;
-    })
-    .attr("cy", d => {
-      const [_, y] = currentTransform.apply([d.x, d.y]);
-      return y + d.height/14;
-    })
-    .attr("r", d => sizeScalecircle(d.nominations))
-    .attr("fill", colorNominates)
-    .attr("opacity", 0.7)
-    .attr("stroke", colorNominates);
-
-    g.selectAll("text.continent-label").remove(); // Remove textos anteriores
-
-    g.selectAll("text.continent-label")
-      .data(preparedData2)
-      .enter()
-      .append("text")
-      .attr("class", "continent-label")
-      .attr("x", d => {
-        const [x, _] = currentTransform.apply([d.x, d.y]);
-        return x;
-      })
-      .attr("y", d => {
-        const [_, y] = currentTransform.apply([d.x, d.y]);
-        return y - 5; // ligeiro ajuste vertical
-      })
-      .text(d => d.country)
-      .attr("text-anchor", "middle")
-      .attr("font-size", d => Math.max(d.height * 0.25))
-      .attr("fill", "white")
-      .attr("pointer-events", "none") // evita que interfira nos cliques nos retângulos
-      .each(function(d) {
-        const fontSize = Math.max(8, d.height * 0.2);
-        const maxWidth = d.width * 0.9; // margem de segurança
-        const words = d.country.split(/\s+/); // divide por espaço
-        const lineHeight = fontSize * 1.1;
-        let line = [];
-        let lines = [];
-        const tempText = d3.select(this);
-
-        for (let word of words) {
-          line.push(word);
-          tempText.text(line.join(" "));
-          if (tempText.node().getComputedTextLength() > maxWidth) {
-            line.pop();
-            lines.push(line.join(" "));
-            line = [word];
-          }
-        }
-        if (line.length) lines.push(line.join(" "));
-
-        tempText.text(null); // limpa o texto antes de adicionar tspans
-
-        lines.forEach((textLine, i) => {
-          tempText.append("tspan")
-            .text(textLine)
-            .attr("x", d => {
-              const [x, _] = currentTransform.apply([d.x, d.y]);
-              return x;
-            })
-            .attr("dy", i === 0 ? 0 : lineHeight)
-            .attr("text-anchor", "middle")
-        });
-
-        // centraliza verticalmente ajustando y inicial
-        tempText.attr("y", d => {
-          const [_, y] = currentTransform.apply([d.x, d.y]);
-          return y - (lines.length - 1) * lineHeight / 2;
-        });
-      });
-
-    
-
-  }
-
-  function drawContinents () {
-    g.selectAll("rect").remove();
-    g.selectAll("circle").remove();
-    g.selectAll("circle1").remove();
     g.selectAll("line").remove();
+
     const ratio = 1.82;
-
+    
     const sizeScalecircle = d3.scaleSqrt()
-      .domain([0, d3.max([d3.max(continentBubbles, d => d.circle02 - d.circle01), d3.max(continentBubbles, d => d.circle01)])]) 
-      .range([10, 20]);
+      .domain([0, d3.max([d3.max(continentBubbles, d => d.nominations - d.wins), d3.max(continentBubbles, d => d.wins)])]) 
+      .range([5, 10]);
       
-
-    const sizeScale = d3.scaleSqrt()
-      .domain([0, d3.max(continentBubbles, d => d.circle02)]) 
-      .range([40, 80]);
-
-    // Calcula os centroides dos países do GeoJSON
-    const countryCentroids = new Map(
-      geoData.features.map(f => [f.properties.sovereignt, pathGenerator.centroid(f)])
-    );
-
-    const preparedData = continentBubbles.map(d => {
-      const [x, y] = projection(d.coordinates); // centróide
-      const height = sizeScale(d.circle02);
-      const width = height * ratio;
-      return { ...d, x, y, fx: x, fy: y, width, height };
-    });
     const svg = d3.select(svgEl);
+    svg.select("defs").remove();
     const defs = svg.append("defs");
     const mask = defs.append("mask")
       .attr("id", "myMask");
@@ -411,7 +204,7 @@
       .attr("fill", "white");
 
     const circles1 = mask.selectAll("circle.first")
-      .data(preparedData)
+      .data(data)
       .enter()
       .append("circle")
       .attr("class", "first")
@@ -426,24 +219,28 @@
       .attr("r", d => sizeScalecircle(0)) // usa valor real, não zero
       .attr("fill", "black");
 
-    const circles2 = mask.selectAll("circle.second")
-      .data(preparedData)
-      .enter()
-      .append("circle")
-      .attr("class", "second")
-      .attr("cx", d => {
-        const [x, _] = currentTransform.apply([d.x, d.y]);
-        return x + d.width / 4;
-      })
-      .attr("cy", d => {
-        const [_, y] = currentTransform.apply([d.x, d.y]);
-        return y + d.height / 14;
-      })
-      .attr("r", d => sizeScalecircle(0)) // usa valor real
-      .attr("fill", "black");
+    mask.selectAll("circle.second")
+    .data(data)
+    .join(
+      enter => enter.append("circle")
+        .attr("class", "second")
+        .attr("fill", "black")
+        .call(enter => enter
+          .attr("cx", d => currentTransform.apply([d.x, d.y])[0] + d.width / 4)
+          .attr("cy", d => currentTransform.apply([d.x, d.y])[1] + d.height / 14)
+          .attr("r", d => sizeScalecircle(0))
+        ),
+      update => update
+        .call(update => update
+          .attr("cx", d => currentTransform.apply([d.x, d.y])[0] + d.width / 4)
+          .attr("cy", d => currentTransform.apply([d.x, d.y])[1] + d.height / 14)
+          .attr("r", d => sizeScalecircle(0))
+        ),
+      exit => exit.remove()
+    );
 
     g.selectAll("rect")
-      .data(preparedData)
+      .data(data)
       .enter()
       .append("rect")
       .attr("x", d => {
@@ -459,15 +256,19 @@
       .attr("fill", colorFitas)
       .attr("mask", "url(#myMask)")
       .attr("opacity", 0.9)
-      .attr("stroke", d => {
+      .attr("stroke", nivel === "continent" ?  
+      d => {
         const countriesInContinent = geoData.features
           .filter(f => f.properties.continent === d.continent)
           .map(f => f.properties.name);
 
         const allSelected = countriesInContinent.every(c => get(fitas).has(c));
         return allSelected ? "gold" : null;
-      })
-      .on("click", (event, d) => {
+      } :
+      d => get(fitas).has(d.country) ? "gold" : null
+      )
+      .on("click", nivel === "continent" ? 
+      (event, d) => {
 
         const countriesInContinent = geoData.features
           .filter(f => f.properties.continent === d.continent)
@@ -483,10 +284,16 @@
 
         drawContinents();
         console.log("fitas:", get(fitas));
-      });
+      } :
+      (event, d) => {
+        fitas.toggle(d.country);  // seu método da store que adiciona/remove reativamente
+        drawCountries(); // redesenha para atualizar a cor
+        console.log("fitas:", get(fitas)); // pega snapshot atual
+      }
+      );
 
     g.selectAll("circle.left")
-    .data(preparedData)
+    .data(data)
     .enter()
     .append("circle")
     .attr("cx", d => {
@@ -497,14 +304,14 @@
       const [_, y] = currentTransform.apply([d.x, d.y]);
       return y + d.height/14;
     })
-    .attr("r", d => sizeScalecircle(d.circle01))
+    .attr("r", d => sizeScalecircle(d.wins))
     .attr("fill", colorWins)
     .attr("opacity", 0.7)
     .attr("stroke", colorWins)
     .attr("mask", "url(#myMask)")
     .each(d => {
       const [x, y] = currentTransform.apply([d.x, d.y]);
-      const [a, b] = pontoTangenciaMenorY(x - d.width/4, y + d.height/14, sizeScalecircle(d.circle01), x-d.width/2, y - d.height/3);
+      const [a, b] = pontoTangenciaMenorY(x - d.width/4, y + d.height/14, sizeScalecircle(d.wins), x-d.width/2, y - d.height/3);
 
       g.append("line")
       .attr("class", "yellow")
@@ -525,7 +332,7 @@
     });
 
     g.selectAll("circle.right")
-    .data(preparedData)
+    .data(data)
     .enter()
     .append("circle")
     .attr("cx", d => {
@@ -536,14 +343,14 @@
       const [_, y] = currentTransform.apply([d.x, d.y]);
       return y + d.height/14;
     })
-    .attr("r", d => sizeScalecircle(d.circle02 - d.circle01))
+    .attr("r", d => sizeScalecircle(d.nominations - d.wins))
     .attr("fill", colorNominates)
     .attr("opacity", 0.7)
     .attr("stroke", colorNominates)
     .attr("mask", "url(#myMask)")
     .each(d => {
       const [x, y] = currentTransform.apply([d.x, d.y]);
-      const [a, b] = pontoTangenciaMenorY(x + d.width/4, y + d.height/14, sizeScalecircle(d.circle02 - d.circle01), x+d.width/2, y - d.height/3);
+      const [a, b] = pontoTangenciaMenorY(x + d.width/4, y + d.height/14, sizeScalecircle(d.nominations - d.wins), x+d.width/2, y - d.height/3);
 
       g.append("line")
       .attr("class", "green")
@@ -566,7 +373,7 @@
     g.selectAll("text.continent-label").remove(); // Remove textos anteriores
 
     g.selectAll("text.continent-label")
-      .data(preparedData)
+      .data(data)
       .enter()
       .append("text")
       .attr("class", "continent-label")
@@ -578,7 +385,7 @@
         const [_, y] = currentTransform.apply([d.x, d.y]);
         return y - 5; // ligeiro ajuste vertical
       })
-      .text(d => d.continent)
+      .text(d => d[nivel])
       .attr("text-anchor", "middle")
       .attr("font-size", d => Math.max(d.height * 0.25))
       .attr("fill", "black")
@@ -586,7 +393,7 @@
       .each(function(d) {
         const fontSize = Math.max(8, d.height * 0.2);
         const maxWidth = d.width * 0.9; // margem de segurança
-        const words = d.continent.split(/\s+/); // divide por espaço
+        const words = d[nivel].split(/\s+/); // divide por espaço
         const lineHeight = fontSize * 1.1;
         let line = [];
         let lines = [];
@@ -637,6 +444,76 @@
           return y - d.height/4//- (lines.length - 1) * lineHeight / 2;
         });
       });
+
+  }
+
+  function drawCountries () {
+
+    const ratio = 1.82;
+
+
+    const sizeScale = d3.scaleSqrt()
+      .domain([0, d3.max(bubbleData, d => d.nominations)]) 
+      .range([24, 50]);
+
+    // Calcula os centroides dos países do GeoJSON
+    const countryCentroids = new Map(
+      geoData.features.map(f => [f.properties.sovereignt, pathGenerator.centroid(f)])
+    );
+
+    let preparedData2 = bubbleData
+      .map(d => {
+        const rawCentroid = countryCentroids.get(d.country);
+        if (!rawCentroid) return null;
+        const [x, y] = rawCentroid;
+        const height = sizeScale(d.nominations);
+        const width = height * ratio;
+        const radius = Math.sqrt(width * width + height * height) / 2;
+        return { ...d, x, y, width, height, radius };
+      })
+      .filter(d => d !== null);
+
+    // Simulação de colisão
+    const simulation = d3.forceSimulation(preparedData2)
+      .force("x", d3.forceX(d => d.x ).strength(0.9))
+      .force("y", d3.forceY(d => d.y ).strength(0.9))
+      .force("collision", d3.forceCollide(d => d.radius / currentZoom + 1)) // padding extra de 1px
+      .stop();
+
+    // Roda a simulação por alguns ticks
+    for (let i = 0; i < 10; ++i) simulation.tick();
+
+    preparedData2 = [...preparedData2]; // força reatividade
+
+    drawFitas(preparedData2, "country")
+
+
+    
+
+  }
+
+  function drawContinents () {
+
+    const ratio = 1.82;
+
+
+    const sizeScale = d3.scaleSqrt()
+      .domain([0, d3.max(continentBubbles, d => d.nominations)]) 
+      .range([40, 80]);
+
+    // Calcula os centroides dos países do GeoJSON
+    const countryCentroids = new Map(
+      geoData.features.map(f => [f.properties.sovereignt, pathGenerator.centroid(f)])
+    );
+
+    const preparedData = continentBubbles.map(d => {
+      const [x, y] = projection(d.coordinates); // centróide
+      const height = sizeScale(d.nominations);
+      const width = height * ratio;
+      return { ...d, x, y, fx: x, fy: y, width, height };
+    });
+
+    drawFitas(preparedData, "continent");
 
     console.log("Mapa com bolhas desenhado");
 
