@@ -2,7 +2,7 @@ import csv
 import json
 from collections import defaultdict
 
-with open('/home/ximena/Documentos/repos/final-project-cinedive/static/data/graph_full_cleaned.json', encoding='utf-8') as f:
+with open('../static/data/graph_full_cleaned.json', encoding='utf-8') as f:
     graph_data = json.load(f)
 
 
@@ -11,7 +11,7 @@ for node in graph_data["nodes"]:
     if node.get("type") == "movie":
         movie_country[node["id"]] = node.get("country_origin", "Unknown")
 
-csv_file = '/home/ximena/Documentos/repos/final-project-cinedive/static/data/radial_people.csv'
+csv_file = '../static/data/radial_people.csv'
 nodes_dict = {}
 movie_to_people = defaultdict(list)
 movie_title_year_map = {}
@@ -30,9 +30,12 @@ with open(csv_file, newline='', encoding='utf-8') as f:
             nodes_dict[pid] = {
                 "id": pid,
                 "name": name,
-                "roles": set()
+                "roles": set(),
+                "years": []
             }
         nodes_dict[pid]["roles"].add(role)
+        if year not in nodes_dict[pid]["years"]:
+            nodes_dict[pid]["years"].append(year)
 
         movie_to_people[movieId].append(pid)
         movie_title_year_map[movieId] = (movie, year)
@@ -42,7 +45,8 @@ for pid, info in nodes_dict.items():
     nodes.append({
         "id": pid,
         "name": info["name"],
-        "type": ", ".join(sorted(info["roles"]))
+        "type": ", ".join(sorted(info["roles"])),
+        "years": sorted(info["years"])
     })
 
 links_dict = defaultdict(lambda: {"filmes": set(), "years": set(), "countries": set()})
@@ -74,6 +78,6 @@ output = {
     "links": links
 }
 
-with open('/home/ximena/Documentos/repos/final-project-cinedive/static/data/graphic_person.json', 'w', encoding='utf-8') as f:
+with open('../static/data/graphic_person.json', 'w', encoding='utf-8') as f:
     json.dump(output, f, indent=2, ensure_ascii=False)
 
