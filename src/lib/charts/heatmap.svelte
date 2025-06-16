@@ -439,7 +439,7 @@
 								{#each group.movies as movie}
 									<li>
 										<strong>{movie.primaryTitle} ({movie.startYear})</strong><br/>
-										Nominations: {movie.oscarNominations}, Wins: {movie.oscarWins}
+										Country: {movie.country_origin ? movie.country_origin.join(', ') : "Unknown"}
 									</li>
 								{/each}
 							</ul>

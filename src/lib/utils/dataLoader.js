@@ -118,7 +118,6 @@ export async function loadMoviesFullData() {
 	}));
 
 	console.log('Loaded movies data:', data.length, 'rows');
-	console.log('First 10 rows:', data.slice(0, 5));
 	cachedMoviesData = data;
 	return cachedMoviesData;
 }

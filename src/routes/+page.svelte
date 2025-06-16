@@ -286,7 +286,7 @@
         visualize how nominations and wins correlate: each cell groups films with similar numbers of
         nominations and victories, revealing patterns in cinematic recognition.
       </p>
-      <Heatmap loadMoviesFullData={loadMoviesLastMovies} mode={heatmapMode} />
+      <Heatmap loadMoviesFullData={loadMoviesFullData} mode={heatmapMode} />
       <div class="mode-controls" style="margin-top: 1rem;">
         <label><input type="radio" bind:group={heatmapMode} value="exploration" /> Exploration</label>
         <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="topWins" /> Top Wins</label>
