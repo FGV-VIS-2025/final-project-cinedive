@@ -4,6 +4,23 @@ from collections import defaultdict
 
 with open('../static/data/graph_full_cleaned.json', encoding='utf-8') as f:
     graph_data = json.load(f)
+    
+def parse_list_field(raw):
+    """
+    Garante que o resultado seja uma lista, mesmo se for uma string simples.
+    """
+    raw = raw.strip()
+    if not raw:
+        return []
+
+    try:
+        value = ast.literal_eval(raw)
+        if isinstance(value, list):
+            return value
+        else:
+            return [str(value)]
+    except (ValueError, SyntaxError):
+        return [raw]
 
 
 movie_country = {}
@@ -25,13 +42,16 @@ with open(csv_file, newline='', encoding='utf-8') as f:
         movieId = row['movieId']
         movie = row['movieTitle']
         year = row['year']
+        country_list = parse_list_field(row.get('country_origin', ''))
+        country = country_list[0] if country_list else None
 
         if pid not in nodes_dict:
             nodes_dict[pid] = {
                 "id": pid,
                 "name": name,
                 "roles": set(),
-                "years": []
+                "years": [],
+                "country": country
             }
         nodes_dict[pid]["roles"].add(role)
         if year not in nodes_dict[pid]["years"]:
@@ -46,7 +66,8 @@ for pid, info in nodes_dict.items():
         "id": pid,
         "name": info["name"],
         "type": ", ".join(sorted(info["roles"])),
-        "years": sorted(info["years"])
+        "years": sorted(info["years"]),
+        "country": info["country"]
     })
 
 links_dict = defaultdict(lambda: {"filmes": set(), "years": set(), "countries": set()})
