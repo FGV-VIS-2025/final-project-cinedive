@@ -14,7 +14,7 @@
   onMount(async () => {
     data = await getPersonGraph();
     if (data?.nodes) {
-      availablePeople = [...new Set(data.nodes.map(person => person.id).filter(Boolean))];
+      availablePeople = [...new Set(data.nodes.map(person => person.name).filter(Boolean))];
       console.log(availablePeople)
     }
   });
@@ -23,26 +23,27 @@
   $: selectedPeople = Array.from($pessoasSelecionadas);
 
 
-    $: if (data && $pessoasSelecionadas.size > 0 && svgEl) {
+  $: if (data && $pessoasSelecionadas.size > 0 && svgEl) {
     const selectedSet = $pessoasSelecionadas;
 
-    // Inclui todos os links onde ao menos uma das pontas está selecionada
-    const links = data.links.filter(l =>
-        selectedSet.has(l.source) || selectedSet.has(l.target)
+    const selectedNodeIds = data.nodes
+      .filter(n => selectedSet.has(n.name))
+      .map(n => n.id);
+
+    const links = data.links.filter(
+      l => selectedNodeIds.includes(l.source) || selectedNodeIds.includes(l.target)
     );
 
-    // Coleta todos os IDs dos nós conectados por esses links
     const connectedIds = new Set();
     links.forEach(link => {
-        connectedIds.add(link.source);
-        connectedIds.add(link.target);
+      connectedIds.add(link.source);
+      connectedIds.add(link.target);
     });
 
-    // Junta os IDs explicitamente selecionados com os conectados
-    const allRelevantIds = new Set([...selectedSet, ...connectedIds]);
+    const allRelevantIds = new Set([...selectedNodeIds, ...connectedIds]);
 
-    // Seleciona todos os nós que fazem parte dos IDs relevantes
     const nodes = data.nodes.filter(n => allRelevantIds.has(n.id));
+
 
     // Limpa SVG
     d3.select(svgEl).selectAll('*').remove();
@@ -90,7 +91,7 @@
         }
         )
         .on("mouseover", (event, d) => {
-            tooltipText.text(`${d.source.id} → ${d.target.id}`);
+            tooltipText.text(`${d.source.name} → ${d.target.name }`);
             const textBBox = tooltipText.node().getBBox();
 
             tooltipBackground
@@ -118,14 +119,14 @@
         .attr("fill", d => selectedSet.has(d.id) ? "gold" : "#888")
         .call(drag(simulation))
         .on("click", (event, d) => {
-            pessoasSelecionadas.toggle(d.id);
+            pessoasSelecionadas.toggle(d.name);
         });
 
     const label = svg.append("g")
         .selectAll("text")
         .data(nodes)
         .join("text")
-        .text(d => d.id)
+        .text(d => d.name)
         .attr("font-size", "10px")
         .attr("dy", "-0.9em");
 
@@ -167,7 +168,7 @@
             d.fy = null;
         });
     }
-    }
+  }
 
     
 
