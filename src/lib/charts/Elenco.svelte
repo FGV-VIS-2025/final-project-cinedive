@@ -7,6 +7,7 @@
   import * as d3 from 'd3'; //comentario para pull request
 
   let svgEl;
+  let svgTL;
   let data = null;
   let availablePeople;
 
@@ -23,7 +24,7 @@
   $: selectedPeople = Array.from($pessoasSelecionadas);
 
 
-    $: if (data && $pessoasSelecionadas.size > 0 && svgEl) {
+  $: if (data && $pessoasSelecionadas.size > 0 && svgEl) {
     const selectedSet = $pessoasSelecionadas;
 
     // Inclui todos os links onde ao menos uma das pontas está selecionada
@@ -56,7 +57,7 @@
         ...l,
         source: nodeById.get(l.source),
         target: nodeById.get(l.target)
-    }));
+    })).filter(l => l.source && l.target);
 
     const simulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(resolvedLinks).id(d => d.id).distance(100))
@@ -167,7 +168,35 @@
             d.fy = null;
         });
     }
+  }
+  
+$: if (data && $pessoasSelecionadas.size > 0 && svgTL) {
+  const svg = d3.select(svgTL);
+  svg.selectAll("*").remove(); // limpa antes de desenhar
+
+  const selectedSet = $pessoasSelecionadas;
+
+  const width = +svg.attr("width");
+  const height = +svg.attr("height");
+
+  const peoples = data.nodes.filter(d => selectedSet.has(d.id));
+
+  for (let i = 0; i < peoples.length; i++) {
+    const person = peoples[i];
+    if (person.years && person.years.length > 0) {
+      for (let j = 0; j < person.years.length; j++) {
+        const year = parseInt(person.years[j]);
+        if (!isNaN(year)) {
+          svg.append("circle")
+            .attr("cx", (year - 1925) * 5 + 5)  // ajuste aqui se estiver fora da tela
+            .attr("cy", 20 * i + 5)
+            .attr("r", 3)
+            .attr("fill", "white");
+        }
+      }
     }
+  }
+}
 
     
 
@@ -194,6 +223,10 @@
     <div class="graph-panel">
       <svg bind:this={svgEl} width={800} height={600}></svg>
     </div>
+  </div>
+
+  <div>
+    <svg bind:this={svgTL} width={800} height={100}></svg>
   </div>
 {:else}
   <p>Carregando dados...</p>
