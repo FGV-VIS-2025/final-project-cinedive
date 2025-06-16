@@ -7,6 +7,7 @@
   import * as d3 from 'd3'; //comentario para pull request
 
   let svgEl;
+  let svgTL;
   let data = null;
   let availablePeople;
 
@@ -19,8 +20,22 @@
     }
   });
 
+  const paleta = [
+    "#1f77b4", // azul
+    "#ff7f0e", // laranja
+    "#2ca02c", // verde
+    "#d62728", // vermelho
+    "#9467bd", // roxo
+    "#8c564b"  // marrom
+  ];
+
   // Lista de pessoas selecionadas já existe no store `pessoasSelecionadas`
   $: selectedPeople = Array.from($pessoasSelecionadas);
+
+  let colorscale;
+  $: colorscale = d3.scaleOrdinal()
+    .domain(selectedPeople)
+    .range(paleta);
 
 
   $: if (data && $pessoasSelecionadas.size > 0 && svgEl) {
@@ -116,7 +131,7 @@
         .data(nodes)
         .join("circle")
         .attr("r", 8)
-        .attr("fill", d => selectedSet.has(d.id) ? "gold" : "#888")
+        .attr("fill", d => selectedSet.has(d.name) ? colorscale(d.name) : "#888")
         .call(drag(simulation))
         .on("click", (event, d) => {
             pessoasSelecionadas.toggle(d.name);
@@ -170,6 +185,44 @@
     }
   }
 
+  $: if (data && $pessoasSelecionadas.size > 0 && svgTL) {
+  const svg = d3.select(svgTL);
+  svg.selectAll("*").remove(); // limpa antes de desenhar
+
+  const selectedSet = $pessoasSelecionadas;
+
+  const width = +svg.attr("width");
+  const height = +svg.attr("height");
+
+  const peoples = data.nodes.filter(d => selectedSet.has(d.name));
+  let size_i = 0;
+  for (let i = 0; i < peoples.length; i++) {
+    const person = peoples[i];
+    size_i = i;
+    if (person.years && person.years.length > 0) {
+      for (let j = 0; j < person.years.length; j++) {
+        const year = parseInt(person.years[j]);
+        if (!isNaN(year)) {
+          svg.append("rect")
+            .attr("x", 20 * i + 35)  // ajuste aqui se estiver fora da tela
+            .attr("y", (year - 1925)*10 +2)
+            .attr("width", 20) 
+            .attr("height", 10) 
+            .attr("fill", colorscale(person.name));
+        }
+      }
+    }
+  }
+  for (let k = 1925; k < 2025; k++){
+    svg.append("text")
+    .text(`${k}`)
+    .attr("x", 5)
+    .attr("y", (k - 1925) * 10 + 12) 
+    .attr("font-size", "12px")
+    .attr("fill", "black");
+  }
+}
+
     
 
 </script>
@@ -177,6 +230,11 @@
 <!-- Usando o MultiSelect no HTML -->
 {#if data && availablePeople.length > 0}
   <div class="container">
+    <!-- Painel do grafo -->
+    <div class="graph-panel">
+      <svg bind:this={svgEl} width={800} height={600}></svg>
+    </div>
+
     <!-- Painel da multiseleção -->
     <div class="multiselect-panel">
       <h2>Selecione as pessoas</h2>
@@ -186,16 +244,16 @@
       <p>Pessoas selecionadas:</p>
       <ul>
         {#each selectedPeople as person}
-          <li>{person}</li>
+          <li style="color: {colorscale(person)}">{person}</li>
         {/each}
       </ul>
-    </div>
-
-    <!-- Painel do grafo -->
-    <div class="graph-panel">
-      <svg bind:this={svgEl} width={800} height={600}></svg>
+      <div class="timeline">
+        <svg bind:this={svgTL} width={800} height={800}></svg>
+      </div>
     </div>
   </div>
+
+
 {:else}
   <p>Carregando dados...</p>
 {/if}
@@ -214,5 +272,12 @@
 
   .graph-panel {
     flex-grow: 1;
+  }
+
+  .timeline {
+    max-height: 20vh;          /* altura limitada */
+    overflow-y: auto;           /* scroll vertical */
+    scrollbar-width: none;      /* Firefox */
+    -ms-overflow-style: none;
   }
 </style>
