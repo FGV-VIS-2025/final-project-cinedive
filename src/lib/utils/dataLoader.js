@@ -2,9 +2,12 @@
 import { tsv, csv } from 'd3';
 import { base } from '$app/paths';
 
-let cachedMovies = null;
-
+let cachedIMDBMovies = null;
 export async function getDataForFitas() {
+	if (cachedIMDBMovies) {
+		console.log('Using cached movies data#1');
+		return cachedIMDBMovies;
+	}
 
 	const data = await csv(`${base}/data/world_imdb_movies_top_movies_per_year.csv`, row => ({
       id: row.id,
@@ -32,14 +35,16 @@ export async function getDataForFitas() {
       oscar: +row.oscar,
 	}));
 
-	cachedMovies = data;
+	cachedIMDBMovies = data;
 	return data;
 };
 
+
+let cachedLastMovies = null;
 export async function loadMoviesLastMovies() {
-	if (cachedMovies) {
+	if (cachedLastMovies) {
 		console.log('Using cached movies data');
-		return cachedMovies;
+		return cachedLastMovies;
 	}
 
 	const data = await tsv(`${base}/data/title_oscar.tsv`, row => ({
@@ -50,37 +55,34 @@ export async function loadMoviesLastMovies() {
         oscarWins: +row.oscarWins,
     }));
 
-	cachedMovies = data;
+	cachedLastMovies = data;
 	console.log('Loaded movies data from TSV file');
-	return cachedMovies;
+	return cachedLastMovies;
 }
 
 let cachedGraph = null;
-
 export async function loadGraph() {
 	if (cachedGraph) {
-	  console.log('Using cached graph data');
+	  console.log('loadGraph(): Using cached graph data');
 	  return cachedGraph;
 	}
   
 	const res = await fetch(`${base}/data/graph_full_cleaned.json`);
 	if (!res.ok) {
-	  console.error("❌ No se pudo cargar graph_for_project.json:", res.status);
+	  console.error("loadGraph(): graph_full_cleaned.json:", res.status);
 	  throw new Error("Graph JSON not found");
 	}
 	const data = await res.json();
-	console.log("✅ loadGraph(): JSON cargado, nodos:", data.nodes.length, "enlaces:", data.links.length);
+	console.log("loadGraph(): JSON loaded, nodes:", data.nodes.length, "edges:", data.links.length);
+	
 	cachedGraph = data;
 	return cachedGraph;
-  }
-  
-
+}
 
 let personData = null;
-
 export async function getPersonGraph(params) {
 	if (personData) {
-	  console.log('Using cached graph data');
+	  console.log('getPersonGraph(): Using cached graph data');
 	  return personData;
 	}
   
@@ -90,13 +92,13 @@ export async function getPersonGraph(params) {
 	  throw new Error("Graph JSON not found");
 	}
 	const data = await res.json();
-	console.log("✅ loadGraph(): JSON cargado, nodos:", data.nodes.length, "enlaces:", data.links.length);
+	console.log("getPersonGraph(): JSON loaded, nodes:", data.nodes.length, "links:", data.links.length);
+	
 	personData = data;
 	return personData;
 }
 
 let cachedMoviesData = null;
-
 export async function loadMoviesFullData() {
 	if (cachedMoviesData) {
 		console.log('Using cached movies data:', cachedMoviesData.length, 'rows');
@@ -116,6 +118,7 @@ export async function loadMoviesFullData() {
 	}));
 
 	console.log('Loaded movies data:', data.length, 'rows');
+	console.log('First 10 rows:', data.slice(0, 5));
 	cachedMoviesData = data;
 	return cachedMoviesData;
 }
