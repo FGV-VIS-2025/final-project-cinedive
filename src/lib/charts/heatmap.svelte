@@ -344,7 +344,7 @@
 	function applyModeSelection() {
 		if (!cellElements.size) return;
 
-    	const scaleFactor = 1.2; // aumenta 20%
+    const scaleFactor = 1.2; // aumenta 20%
 
 		// Remove todas as seleções visuais
 		cellElements.forEach(({cell, original}) => {
@@ -386,7 +386,7 @@
 					.attr('stroke-width', 3);
 
         // Calcula nova largura/altura e nova posição para centralizar
-        const newWidth = original.width * scaleFactor;
+        const newWidth  = original.width * scaleFactor;
         const newHeight = original.height * scaleFactor;
         const newX = original.x - (newWidth - original.width) / 2;
         const newY = original.y - (newHeight - original.height) / 2;
@@ -460,8 +460,8 @@
 
 <style>
 	.heatmap-container {
-		width: 90%;
-		padding: 20px;
+		width: 95%;
+		padding: 10px;
 		background: #3A3A35;
 		border-radius: 8px;
 	}
