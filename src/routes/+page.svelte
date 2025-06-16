@@ -35,7 +35,7 @@
 
   onMount(async () => {
     window.addEventListener('scroll', () => {
-      if (window.scrollY > 100) {  // Ajusta el valor según el momento que desees
+      if (window.scrollY > 100) {  
         showFita = true;
       }
     });
@@ -313,19 +313,19 @@
          Step 7: Oscar Wins vs Nominations Heatmap
          =================================== -->
   <div class="step" data-step="7">
-      <div class="step-content">
-        <h2>Grafico apenas de artistas</h2>
-        <!-- Narración Scrollytelling en inglés -->
-         <Elenco></Elenco>
-        <p class="narrative">
-          Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
-          visualize how nominations and wins correlate: each cell groups films with similar numbers of
-          nominations and victories, revealing patterns in cinematic recognition.
-        </p>
-      </div>
+    <div class="step-content">
+      <h2>Grafico apenas de artistas</h2>
+      {#if selectedMovie}
+        <Elenco selectedMovieId={selectedMovie} />
+      {:else}
+        <p>Selecione um filme para ver o grafo de artistas.</p>
+      {/if}
+      <p class="narrative">
+        Over the decades, the Academy Awards have witnessed countless triunfos...
+      </p>
     </div>
+  </div>
 </div>
-
 
 <style>
   :root {
