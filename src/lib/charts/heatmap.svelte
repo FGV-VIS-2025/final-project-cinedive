@@ -229,14 +229,16 @@
 			.selectAll('text')
 			.style('font-size', '12px');
 
-		// Rótulos dos eixos
+		// Rótulos dos eixo X
 		g.append('text')
 			.attr('transform', `translate(${width/2}, ${height + 50})`)
 			.style('text-anchor', 'middle')
 			.style('font-size', '14px')
 			.style('font-weight', 'bold')
+      .style('fill', '#F0F0F0')
 			.text('Number of Oscar Nominations');
 
+    // Rótulo eixo Y
 		g.append('text')
 			.attr('transform', 'rotate(-90)')
 			.attr('y', -50)
@@ -244,6 +246,7 @@
 			.style('text-anchor', 'middle')
 			.style('font-size', '14px')
 			.style('font-weight', 'bold')
+      .style('fill', '#F0F0F0')
 			.text('Number of Oscar Wins');
 
 		// Título geral
@@ -253,6 +256,7 @@
 			.attr('text-anchor', 'middle')
 			.style('font-size', '18px')
 			.style('font-weight', 'bold')
+      .style('fill', '#F0F0F0')
 			.text('Heatmap: Oscars wins vs Nominations');
 
 		// Legenda do heatmap
@@ -301,12 +305,14 @@
 			.selectAll('text')
 			.style('font-size', '10px');
 
+    // Rótulo da legenda
 		legend.append('text')
 			.attr('transform', 'rotate(-90)')
 			.attr('y', -10)
 			.attr('x', -legendHeight/2)
 			.style('text-anchor', 'middle')
 			.style('font-size', '16px')
+      .style('fill', '#F0F0F0')
 			.text('Number of Movies (Log Scale)');
 	}
 
@@ -421,7 +427,6 @@
 			<div bind:this={container} class="heatmap"></div>
 
 			<!-- Painel de lista de filmes -->
-			<!-- Painel de lista de filmes, agora agrupado -->
 			<div class="movie-list-panel">
 				<h3>Movies in the selected cells</h3>
 				{#if selectedCells.length === 0}
@@ -457,7 +462,7 @@
 	.heatmap-container {
 		width: 90%;
 		padding: 20px;
-		background: #a1a1a1;
+		background: #3A3A35;
 		border-radius: 8px;
 	}
 
@@ -487,7 +492,7 @@
 		max-height: 600px;
 		overflow-y: auto;
 		padding: 10px;
-		background: #fff;
+		background: #3A3A35;
 		border: 1px solid #ddd;
 		border-radius: 6px;
 	}
@@ -505,13 +510,13 @@
 		margin: 10px 0;
 	}
 
-	.movie-list-panel li {
+	.movie-list-panel li { /* cor da lista de filmes selecionados */
 		margin: 4px 0;
 		font-size: 14px;
-		color: #333;
+		color: #ffffff;
 	}
 
-	.info {
+	.info { /* informações gerais abaixo do heatmap */
 		margin-top: 20px;
 		padding: 15px;
 		background: white;
@@ -519,10 +524,10 @@
 		border-left: 4px solid #ff6b35;
 	}
 
-	.info p {
+	.info p { /* texto das informações gerais abaixo do heatmap*/
 		margin: 5px 0;
 		font-size: 14px;
-		color: #333;
+		color: #000000;
 	}
 
   :global(.cell) {
