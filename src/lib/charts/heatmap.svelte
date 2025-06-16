@@ -229,14 +229,16 @@
 			.selectAll('text')
 			.style('font-size', '12px');
 
-		// Rótulos dos eixos
+		// Rótulos dos eixo X
 		g.append('text')
 			.attr('transform', `translate(${width/2}, ${height + 50})`)
 			.style('text-anchor', 'middle')
 			.style('font-size', '14px')
 			.style('font-weight', 'bold')
+      .style('fill', '#F0F0F0')
 			.text('Number of Oscar Nominations');
 
+    // Rótulo eixo Y
 		g.append('text')
 			.attr('transform', 'rotate(-90)')
 			.attr('y', -50)
@@ -244,6 +246,7 @@
 			.style('text-anchor', 'middle')
 			.style('font-size', '14px')
 			.style('font-weight', 'bold')
+      .style('fill', '#F0F0F0')
 			.text('Number of Oscar Wins');
 
 		// Título geral
@@ -253,6 +256,7 @@
 			.attr('text-anchor', 'middle')
 			.style('font-size', '18px')
 			.style('font-weight', 'bold')
+      .style('fill', '#F0F0F0')
 			.text('Heatmap: Oscars wins vs Nominations');
 
 		// Legenda do heatmap
@@ -301,12 +305,14 @@
 			.selectAll('text')
 			.style('font-size', '10px');
 
+    // Rótulo da legenda
 		legend.append('text')
 			.attr('transform', 'rotate(-90)')
 			.attr('y', -10)
 			.attr('x', -legendHeight/2)
 			.style('text-anchor', 'middle')
 			.style('font-size', '16px')
+      .style('fill', '#F0F0F0')
 			.text('Number of Movies (Log Scale)');
 	}
 
@@ -338,7 +344,7 @@
 	function applyModeSelection() {
 		if (!cellElements.size) return;
 
-    	const scaleFactor = 1.2; // aumenta 20%
+    const scaleFactor = 1.2; // aumenta 20%
 
 		// Remove todas as seleções visuais
 		cellElements.forEach(({cell, original}) => {
@@ -362,9 +368,12 @@
 			const maxWins = d3.max(heatmapData, d => d.wins);
 			cellsToSelect = heatmapData.filter(d => d.wins === maxWins);
 		} 
-    else if (mode === 'topNominations') {
+    	else if (mode === 'topNominations') {
 			const maxNoms = d3.max(heatmapData, d => d.nominations);
 			cellsToSelect = heatmapData.filter(d => d.nominations === maxNoms);
+		}
+		else if (mode === 'diagonal') {
+			cellsToSelect = heatmapData.filter(d => d.nominations === d.wins);
 		}
 
 		const selectedGroups = [];
@@ -374,29 +383,29 @@
 			const ref = cellElements.get(key);
 
 			if (ref) {
-        const { cell, original } = ref;
+        		const { cell, original } = ref;
 
 				cell.classed('auto-selected', true)
 					.attr('stroke-width', 3);
 
-        // Calcula nova largura/altura e nova posição para centralizar
-        const newWidth = original.width * scaleFactor;
-        const newHeight = original.height * scaleFactor;
-        const newX = original.x - (newWidth - original.width) / 2;
-        const newY = original.y - (newHeight - original.height) / 2;
-        
-        // Aplica animação suavemente (CSS transition faz o resto)
-        cell.attr('x', newX)
-            .attr('y', newY)
-            .attr('width', newWidth)
-            .attr('height', newHeight);
+				// Calcula nova largura/altura e nova posição para centralizar
+				const newWidth  = original.width * scaleFactor;
+				const newHeight = original.height * scaleFactor;
+				const newX = original.x - (newWidth - original.width) / 2;
+				const newY = original.y - (newHeight - original.height) / 2;
+				
+				// Aplica animação suavemente (CSS transition faz o resto)
+				cell.attr('x', newX)
+					.attr('y', newY)
+					.attr('width', newWidth)
+					.attr('height', newHeight);
 
-				selectedGroups.push({
-					nominations: d.nominations,
-					wins: d.wins,
-					movies: d.movies.slice().sort((a, b) => b.startYear - a.startYear)
-				});
-			}
+						selectedGroups.push({
+							nominations: d.nominations,
+							wins: d.wins,
+							movies: d.movies.slice().sort((a, b) => b.startYear - a.startYear)
+						});
+					}
 		});
 
 		// Ordena seleção para painel de filmes
@@ -421,7 +430,6 @@
 			<div bind:this={container} class="heatmap"></div>
 
 			<!-- Painel de lista de filmes -->
-			<!-- Painel de lista de filmes, agora agrupado -->
 			<div class="movie-list-panel">
 				<h3>Movies in the selected cells</h3>
 				{#if selectedCells.length === 0}
@@ -434,7 +442,7 @@
 								{#each group.movies as movie}
 									<li>
 										<strong>{movie.primaryTitle} ({movie.startYear})</strong><br/>
-										Nominations: {movie.oscarNominations}, Wins: {movie.oscarWins}
+										Country: {movie.country_origin ? movie.country_origin.join(', ') : "Unknown"}
 									</li>
 								{/each}
 							</ul>
@@ -455,9 +463,9 @@
 
 <style>
 	.heatmap-container {
-		width: 90%;
-		padding: 20px;
-		background: #a1a1a1;
+		width: 95%;
+		padding: 10px;
+		background: #3A3A35;
 		border-radius: 8px;
 	}
 
@@ -487,15 +495,15 @@
 		max-height: 600px;
 		overflow-y: auto;
 		padding: 10px;
-		background: #fff;
-		border: 1px solid #ddd;
+		background: #3A3A35;
+		border: 1px solid #000000;
 		border-radius: 6px;
 	}
 
 	.movie-list-panel h3 {
 		margin-top: 0;
 		font-size: 16px;
-		border-bottom: 1px solid #ccc;
+		border-bottom: 1px solid #000000;
 		padding-bottom: 4px;
 	}
 
@@ -505,24 +513,24 @@
 		margin: 10px 0;
 	}
 
-	.movie-list-panel li {
+	.movie-list-panel li { /* cor da lista de filmes selecionados */
 		margin: 4px 0;
 		font-size: 14px;
-		color: #333;
+		color: #ffffff;
 	}
 
-	.info {
+	.info { /* informações gerais abaixo do heatmap */
 		margin-top: 20px;
 		padding: 15px;
-		background: white;
+		background: #666;
 		border-radius: 6px;
 		border-left: 4px solid #ff6b35;
 	}
 
-	.info p {
+	.info p { /* texto das informações gerais abaixo do heatmap*/
 		margin: 5px 0;
 		font-size: 14px;
-		color: #333;
+		color: #000000;
 	}
 
   :global(.cell) {
