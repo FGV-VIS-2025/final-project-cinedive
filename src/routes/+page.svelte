@@ -5,11 +5,11 @@
   import FilmSearch from '$lib/charts/FilmSearch.svelte';
   import FilmNetwork from '$lib/charts/FilmNetwork.svelte';
   import { loadMoviesLastMovies, getDataForFitas, loadMoviesFullData } from '$lib/utils/dataLoader.js';
-  import Bubble from '$lib/charts/bubble.svelte';
+  // import Bubble from '$lib/charts/bubble.svelte';
   import Fita from '$lib/components/Fita.svelte';
   import Heatmap from '$lib/charts/heatmap.svelte';
   import WorldMap from '$lib/components/WorldMap.svelte';
-  import TopMovies from '$lib/charts/TopMovies.svelte';
+  // import TopMovies from '$lib/charts/TopMovies.svelte';
   import Relogio from '$lib/charts/relogio.svelte';
   import Elenco from '$lib/charts/Elenco.svelte';
   import { currentStep } from '../store/step';
@@ -286,12 +286,13 @@
         visualize how nominations and wins correlate: each cell groups films with similar numbers of
         nominations and victories, revealing patterns in cinematic recognition.
       </p>
-      <Heatmap loadMoviesFullData={loadMoviesFullData} mode={heatmapMode} />
+      <Heatmap loadMoviesFullData={loadMoviesFullData} mode={heatmapMode} movieTconst={selectedMovie} />
       <div class="mode-controls" style="margin-top: 1rem;">
         <label><input type="radio" bind:group={heatmapMode} value="exploration" /> Exploration</label>
         <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="topWins" /> Top Wins</label>
         <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="topNominations" /> Top Nominations</label>
         <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="diagonal" /> Gold Diagonal</label>
+        <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="selectedmovie" /> Selected Movie</label>
       </div>
     </div>
   </div>
