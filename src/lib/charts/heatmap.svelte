@@ -493,14 +493,14 @@
 		overflow-y: auto;
 		padding: 10px;
 		background: #3A3A35;
-		border: 1px solid #ddd;
+		border: 1px solid #000000;
 		border-radius: 6px;
 	}
 
 	.movie-list-panel h3 {
 		margin-top: 0;
 		font-size: 16px;
-		border-bottom: 1px solid #ccc;
+		border-bottom: 1px solid #000000;
 		padding-bottom: 4px;
 	}
 
@@ -519,7 +519,7 @@
 	.info { /* informações gerais abaixo do heatmap */
 		margin-top: 20px;
 		padding: 15px;
-		background: white;
+		background: #666;
 		border-radius: 6px;
 		border-left: 4px solid #ff6b35;
 	}
