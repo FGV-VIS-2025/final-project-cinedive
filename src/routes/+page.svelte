@@ -295,21 +295,8 @@
     </div>
   </div>
 
-  <!-- Step 6: Top Movies -->
+  <!-- Step 6: Timeline -->
   <div class="step" data-step="6">
-    <div class="step-content">
-      <h2>Top Oscar Movies</h2>
-      <p class="narrative">
-        Discover the top-performing Oscar films, based on nominations, wins, and global recognition.
-      </p>
-      {#if GlobalData}
-        <TopMovies data={GlobalData} />
-      {/if}
-    </div>
-  </div>
-
-  <!-- Step 7: Timeline -->
-  <div class="step" data-step="7">
     <div class="step-content">
       <h2>Oscar Timeline</h2>
       <p class="narrative">
@@ -322,9 +309,9 @@
   </div>
 
     <!-- ===================================
-         Step 6: Oscar Wins vs Nominations Heatmap
+         Step 7: Oscar Wins vs Nominations Heatmap
          =================================== -->
-  <div class="step" data-step="8">
+  <div class="step" data-step="7">
       <div class="step-content">
         <h2>Grafico apenas de artistas</h2>
         <!-- Narración Scrollytelling en inglés -->
