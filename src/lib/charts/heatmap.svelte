@@ -368,9 +368,12 @@
 			const maxWins = d3.max(heatmapData, d => d.wins);
 			cellsToSelect = heatmapData.filter(d => d.wins === maxWins);
 		} 
-    else if (mode === 'topNominations') {
+    	else if (mode === 'topNominations') {
 			const maxNoms = d3.max(heatmapData, d => d.nominations);
 			cellsToSelect = heatmapData.filter(d => d.nominations === maxNoms);
+		}
+		else if (mode === 'diagonal') {
+			cellsToSelect = heatmapData.filter(d => d.nominations === d.wins);
 		}
 
 		const selectedGroups = [];
@@ -380,29 +383,29 @@
 			const ref = cellElements.get(key);
 
 			if (ref) {
-        const { cell, original } = ref;
+        		const { cell, original } = ref;
 
 				cell.classed('auto-selected', true)
 					.attr('stroke-width', 3);
 
-        // Calcula nova largura/altura e nova posição para centralizar
-        const newWidth  = original.width * scaleFactor;
-        const newHeight = original.height * scaleFactor;
-        const newX = original.x - (newWidth - original.width) / 2;
-        const newY = original.y - (newHeight - original.height) / 2;
-        
-        // Aplica animação suavemente (CSS transition faz o resto)
-        cell.attr('x', newX)
-            .attr('y', newY)
-            .attr('width', newWidth)
-            .attr('height', newHeight);
+				// Calcula nova largura/altura e nova posição para centralizar
+				const newWidth  = original.width * scaleFactor;
+				const newHeight = original.height * scaleFactor;
+				const newX = original.x - (newWidth - original.width) / 2;
+				const newY = original.y - (newHeight - original.height) / 2;
+				
+				// Aplica animação suavemente (CSS transition faz o resto)
+				cell.attr('x', newX)
+					.attr('y', newY)
+					.attr('width', newWidth)
+					.attr('height', newHeight);
 
-				selectedGroups.push({
-					nominations: d.nominations,
-					wins: d.wins,
-					movies: d.movies.slice().sort((a, b) => b.startYear - a.startYear)
-				});
-			}
+						selectedGroups.push({
+							nominations: d.nominations,
+							wins: d.wins,
+							movies: d.movies.slice().sort((a, b) => b.startYear - a.startYear)
+						});
+					}
 		});
 
 		// Ordena seleção para painel de filmes

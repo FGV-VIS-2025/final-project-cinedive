@@ -291,6 +291,7 @@
         <label><input type="radio" bind:group={heatmapMode} value="exploration" /> Exploration</label>
         <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="topWins" /> Top Wins</label>
         <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="topNominations" /> Top Nominations</label>
+        <label style="margin-left: 1rem;"><input type="radio" bind:group={heatmapMode} value="diagonal" /> Gold Diagonal</label>
       </div>
     </div>
   </div>
