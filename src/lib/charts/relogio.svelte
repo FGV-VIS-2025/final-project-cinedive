@@ -2,6 +2,8 @@
   import { onMount, afterUpdate } from 'svelte';
   import * as d3 from 'd3';
   import { hexbin as d3Hexbin } from 'd3-hexbin';
+  import { format } from "d3-format";
+  
 
   export let data = [];
   export let width = 600;
@@ -31,7 +33,7 @@ function polarToCartesian(theta, r) {
     Math.sin(theta - Math.PI / 2) * r
   ];
 }
-  
+  const formatNumber = format(",.0f");
 
   function draw() {
     if (!data || data.length === 0) return;
@@ -78,6 +80,7 @@ function polarToCartesian(theta, r) {
       .attr("dy", "-0.35em")
       .attr("text-anchor", "middle")
       .style("font-size", "10px")
+      .attr("fill", "#cc8")
       .text(d => d);
 
     // Eixos angulares (linhas radiais para tempo)
@@ -102,6 +105,7 @@ function polarToCartesian(theta, r) {
       .attr("fill", "#cc8")
       .text(d => d);
 
+
     const points = cleaned.map(d => {
       const a = angle(+d[angleFeature]);
       const rad = r(+d[radiusFeature]);
@@ -120,11 +124,29 @@ function polarToCartesian(theta, r) {
     const color = d3.scaleSequential(d3.interpolateInferno)
       .domain([0, d3.max(bins, b => b.length)]);
 
-   
+    //tootip
+    let tooltip = d3.select("body").select(".tooltip");
+    if (tooltip.empty()) {
+      tooltip = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip") 
+        .style("position", "absolute")
+        .style("z-index", "9999") 
+        .style("background", "rgba(0, 0, 0, 0.7)")
+        .style("color", "white")
+        .style("padding", "6px 10px")
+        .style("border", "1px solid #999")
+        .style("border-radius", "4px")
+        .style("font-size", "12px")
+        .style("pointer-events", "none")
+        .style("opacity", 0); 
+    }
 
-    
 
     if (PlotMethod === "heatMap") {
+
+
+
       g.append("g")
       .attr("class", "density")
       .selectAll("path")
@@ -133,7 +155,21 @@ function polarToCartesian(theta, r) {
       .attr("d", d => `M${d.x},${d.y}${hexbin.hexagon()}`)
       .attr("fill", d => color(d.length))
       .attr("stroke", "none")
-      .attr("opacity", 0.6);
+      .attr("opacity", 0.6)
+      .on("mouseover", (event, d) => {
+        tooltip.style("opacity", 1)
+          .html(`
+            Count: ${d.length}<br>
+          `);
+      })
+      .on("mousemove", (event) => {
+        tooltip
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 20) + "px");
+      })
+      .on("mouseout", () => {
+        tooltip.style("opacity", 0);
+      });
     
 
       // Legenda de cor
@@ -161,6 +197,10 @@ function polarToCartesian(theta, r) {
           .attr("stop-color", color(t * maxDensity));
       }
 
+      
+
+
+
       // Retângulo com o gradiente
       g.append("rect")
         .attr("x", legendX)
@@ -185,6 +225,14 @@ function polarToCartesian(theta, r) {
         .selectAll("text")
         .style("font-size", "10px")
         .style("fill", "#cc8");
+
+      g.append("text")
+        .attr("x", legendX - legendWidth / 2 - 70)
+        .attr("y", legendY - 8) // um pouco acima do topo da legenda
+        .attr("fill", "#cc8")
+        .attr("font-size", "12px")
+        .text(`Max density: ${formatNumber(maxDensity)}`);
+
     } else {
       // Pontos
       g.selectAll("circle.dot")
@@ -195,7 +243,7 @@ function polarToCartesian(theta, r) {
       .attr("cy", d => Math.sin(angle(d[angleFeature]) - Math.PI / 2) * r(d[radiusFeature]))
       .attr("r", 3)
       .attr("fill", "#F9AC21")
-      .attr("opacity", 0.1);
+      .attr("opacity", 0.02);
 
     }
 
