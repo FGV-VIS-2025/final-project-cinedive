@@ -214,6 +214,45 @@
         .attr("y", d => d.y - 12);
     });
   }
+
+  let svgTL;
+
+  $: if (data && $pessoasSelecionadas.size > 0 && svgTL) {
+  const svg = d3.select(svgTL);
+  svg.selectAll("*").remove(); // limpa antes de desenhar
+
+  const selectedSet = $pessoasSelecionadas;
+
+  const width = +svg.attr("width");
+  const height = +svg.attr("height");
+
+  const peoples = data.nodes.filter(d => selectedSet.has(d.name));
+  let size_i = 0;
+  for (let i = 0; i < peoples.length; i++) {
+    const person = peoples[i];
+    size_i = i;
+    if (person.years && person.years.length > 0) {
+      for (let j = 0; j < person.years.length; j++) {
+        const year = parseInt(person.years[j]);
+        if (!isNaN(year)) {
+          svg.append("rect")
+            .attr("x", 20 * i + 35)  // ajuste aqui se estiver fora da tela
+            .attr("y", (year - 1925)*10 +2)
+            .attr("width", 20) 
+            .attr("height", 10) 
+            .attr("fill", colorscale(person.name));
+        }
+      }
+    }
+  }
+  for (let k = 1925; k < 2025; k++){
+    svg.append("text")
+    .text(`${k}`)
+    .attr("x", 5)
+    .attr("y", (k - 1925) * 10 + 12) 
+    .attr("font-size", "12px")
+    .attr("fill", "#cc8");
+  }}
 </script>
 
 {#if data && selectedMovieTitle && subgraphPeople.length > 0}
@@ -227,6 +266,9 @@
           <li style="color: {colorscale(person)}">{person}</li>
         {/each}
       </ul>
+      <div class="timeline">
+          <svg bind:this={svgTL} width={800} height={1010}></svg>
+      </div>
       {#if selectedPeople.length === 0}
         <p style="color: #aaa; margin-top: 1em;">Selecione pessoas para visualizar o grafo.</p>
       {/if}
@@ -237,6 +279,7 @@
         <div bind:this={tooltipDiv} class="tooltip"></div>
       </div>
     {/if}
+    
   </div>
 {:else if (data && selectedMovieTitle)}
   <p>Este filme não tem pessoas associadas.</p>
@@ -263,5 +306,11 @@
     pointer-events: none;
     z-index: 1000;
     transition: opacity 0.13s;
+  }
+  .timeline {
+    max-height: 50vh;          /* altura limitada */
+    overflow-y: auto;           /* scroll vertical */
+    scrollbar-width: none;      /* Firefox */
+    -ms-overflow-style: none;
   }
 </style>
