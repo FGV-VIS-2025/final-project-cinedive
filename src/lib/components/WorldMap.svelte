@@ -4,7 +4,8 @@
   import { fitas } from '../../store/fitas';
   import { get } from 'svelte/store';
 
-  export let width = 800;
+  export let width = 600;
+  export let widthLG = 5;
   export let height = 450;
   export let geoData;
   export let data;
@@ -13,6 +14,7 @@
 
   // definindo variaveis globais
   let svgEl;
+  let svgLG;
   let projection;
   let pathGenerator;
   let currentZoom = 1;
@@ -174,6 +176,7 @@
         gMap.attr("transform", event.transform);
         currentZoom = event.transform.k;
         updateView();
+        d3.selectAll(".tooltip").style("opacity", 0);
       });
 
     svg.call(zoom);
@@ -181,17 +184,46 @@
     updateView()
   }
 
+  const sizeScale = d3.scaleSqrt()
+      .domain([0, d3.max(continentBubbles, d => d.nominations)]) 
+      .range([25, 100]);
+
+  const sizeScalecircle = d3.scaleSqrt()
+      .domain([0, d3.max([d3.max(continentBubbles, d => d.nominations - d.wins), d3.max(continentBubbles, d => d.wins)])]) 
+      .range([7, 20]);
+
+  const ratio = 1.82;
+
+
+
   function drawFitas (data, nivel) {
     g.selectAll("rect").remove();
     g.selectAll("circle").remove();
     g.selectAll("line").remove();
 
-    const ratio = 1.82;
+    let tooltip = d3.select("body").select(".tooltip");
+
+    if (tooltip.empty()) {
+      tooltip = d3.select("body")
+        .append("div")
+        .attr("class", "tooltip") 
+        .style("position", "absolute")
+        .style("z-index", "9999") 
+        .style("background", "rgba(0, 0, 0, 0.7)")
+        .style("color", "white")
+        .style("padding", "6px 10px")
+        .style("border", "1px solid #999")
+        .style("border-radius", "4px")
+        .style("font-size", "12px")
+        .style("pointer-events", "none")
+        .style("opacity", 0); 
+    }
+
+    d3.select("body").on("click", () => {
+      tooltip.style("opacity", 0);
+    });
     
-    const sizeScalecircle = d3.scaleSqrt()
-      .domain([0, d3.max([d3.max(continentBubbles, d => d.nominations - d.wins), d3.max(continentBubbles, d => d.wins)])]) 
-      .range([5, 10]);
-      
+    
     const svg = d3.select(svgEl);
     svg.select("defs").remove();
     const defs = svg.append("defs");
@@ -290,7 +322,23 @@
         drawCountries(); // redesenha para atualizar a cor
         console.log("fitas:", get(fitas)); // pega snapshot atual
       }
-      );
+      )
+      .on("mouseover", (event, d) => {
+        tooltip.style("opacity", 1)
+          .html(`
+            Nominatios: ${d.nominations}<br>
+            Wins: ${d.wins}<br>
+            Difference: ${ d.nominations - d.wins }
+          `);
+      })
+      .on("mousemove", (event) => {
+        tooltip
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 20) + "px");
+      })
+      .on("mouseout", () => {
+        tooltip.style("opacity", 0);
+      });
 
     g.selectAll("circle.left")
     .data(data)
@@ -449,13 +497,6 @@
 
   function drawCountries () {
 
-    const ratio = 1.82;
-
-
-    const sizeScale = d3.scaleSqrt()
-      .domain([0, d3.max(bubbleData, d => d.nominations)]) 
-      .range([24, 50]);
-
     // Calcula os centroides dos países do GeoJSON
     const countryCentroids = new Map(
       geoData.features.map(f => [f.properties.sovereignt, pathGenerator.centroid(f)])
@@ -488,18 +529,9 @@
     drawFitas(preparedData2, "country")
 
 
-    
-
   }
 
   function drawContinents () {
-
-    const ratio = 1.82;
-
-
-    const sizeScale = d3.scaleSqrt()
-      .domain([0, d3.max(continentBubbles, d => d.nominations)]) 
-      .range([40, 80]);
 
     // Calcula os centroides dos países do GeoJSON
     const countryCentroids = new Map(
@@ -534,6 +566,172 @@
   $: if (geoData && data) {
     draw();
   }
+
+  $: if (geoData && data) {
+    const svg = d3.select(svgLG);
+    svg.selectAll("*").remove();
+
+    svg.append("rect")
+    .attr("x", 10)
+    .attr("y", 20)
+    .attr("height", sizeScale(0))
+    .attr("width", sizeScale(0) * ratio)
+    .attr("stroke", "#cc8")
+    .attr("fill", "#0000")
+
+    svg.append("text")
+    .text(`${0}`)
+    .attr("x", sizeScale(0) * ratio / 2 + 6)
+    .attr("y", sizeScale(0) + 16)
+    .attr("fill", "#cc8")
+
+    const max_cont = d3.max(continentBubbles, d => d.nominations)
+
+    svg.append("rect")
+    .attr("x", 10)
+    .attr("y", 20)
+    .attr("height", sizeScale(max_cont))
+    .attr("width", sizeScale(max_cont) * ratio)
+    .attr("stroke", "#cc8")
+    .attr("fill", "#0000")
+
+    svg.append("text")
+    .text(`${max_cont}`)
+    .attr("x",sizeScale(max_cont) * ratio / 2)
+    .attr("y",sizeScale(max_cont) + 16)
+    .attr("fill", "#cc8")
+
+    svg.append("rect")
+    .attr("x", 10)
+    .attr("y", 20)
+    .attr("height", sizeScale(1088))
+    .attr("width", sizeScale(1088) * ratio)
+    .attr("stroke", "#cc8")
+    .attr("fill", "#0000")
+
+    svg.append("text")
+    .text(`${1088}`)
+    .attr("x",sizeScale(1088) * ratio / 2)
+    .attr("y",sizeScale(1088) + 16)
+    .attr("fill", "#cc8")
+
+    svg.append("text")
+    .text(`Nominations`)
+    .attr("x",0)
+    .attr("y",10)
+    .attr("fill", "#cc8")
+
+    svg.append("text")
+    .text(`Wins`)
+    .attr("x",0)
+    .attr("y",150)
+    .attr("fill", "#cc8")
+
+    svg.append("text")
+    .text(`Difference`)
+    .attr("x",100)
+    .attr("y",150)
+    .attr("fill", "#cc8")
+
+    svg.append("circle")
+    .attr("cx", sizeScalecircle(0) + 10)
+    .attr("cy", 150 + sizeScalecircle(0) + 10)
+    .attr("r", sizeScalecircle(0))
+    .attr("stroke", "#cc80")
+    .attr("fill", colorWins);
+
+    svg.append("text")
+    .text(`0`)
+    .attr("x",50)
+    .attr("y",150 + sizeScalecircle(0) + 16)
+    .attr("fill", "#cc8")
+
+    svg.append("text")
+    .text(`235`)
+    .attr("x",50)
+    .attr("y",150 + sizeScalecircle(235) + 36)
+    .attr("fill", "#cc8")
+
+    svg.append("text")
+    .text(`1616`)
+    .attr("x",50)
+    .attr("y",175 + sizeScalecircle(1616) + 36)
+    .attr("fill", "#cc8")
+
+    svg.append("circle")
+    .attr("cx", sizeScalecircle(0) + 110)
+    .attr("cy", 150 + sizeScalecircle(0) + 10)
+    .attr("r", sizeScalecircle(0))
+    .attr("stroke", "#cc80")
+    .attr("fill", colorNominates);
+
+    svg.append("circle")
+    .attr("cx", sizeScalecircle(235) + 10)
+    .attr("cy", 150 + sizeScalecircle(235) + 30)
+    .attr("r", sizeScalecircle(235))
+    .attr("stroke", "#cc80")
+    .attr("fill", colorWins);
+
+    svg.append("circle")
+    .attr("cx", sizeScalecircle(853) + 110)
+    .attr("cy", 150 + sizeScalecircle(853) + 30)
+    .attr("r", sizeScalecircle(853))
+    .attr("stroke", "#cc80")
+    .attr("fill", colorNominates);
+
+    svg.append("circle")
+    .attr("cx", sizeScalecircle(1616) + 10)
+    .attr("cy", 175 + sizeScalecircle(1616) + 30)
+    .attr("r", sizeScalecircle(1616))
+    .attr("stroke", "#cc80")
+    .attr("fill", colorWins);
+
+    svg.append("circle")
+    .attr("cx", sizeScalecircle(6293) + 110)
+    .attr("cy", 180 + sizeScalecircle(6293) + 30)
+    .attr("r", sizeScalecircle(6293))
+    .attr("stroke", "#cc80")
+    .attr("fill", colorNominates);
+
+    svg.append("text")
+    .text(`0`)
+    .attr("x",160)
+    .attr("y",150 + sizeScalecircle(0) + 16)
+    .attr("fill", "#cc8")
+
+    svg.append("text")
+    .text(`853`)
+    .attr("x",160)
+    .attr("y",150 + sizeScalecircle(853) + 36)
+    .attr("fill", "#cc8")
+
+    svg.append("text")
+    .text(`6293`)
+    .attr("x",160)
+    .attr("y",180 + sizeScalecircle(6293) + 36)
+    .attr("fill", "#cc8")
+
+  }
+
+
+
 </script>
 
-<svg bind:this={svgEl} {width} {height} />
+
+<div class="container">
+  <div>
+    <svg bind:this={svgEl} {width} {height} />
+  </div>
+  <div>
+    <svg bind:this={svgLG} {widthLG} {height} />
+  </div>
+</div>
+
+<style>
+  .container {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+</style>

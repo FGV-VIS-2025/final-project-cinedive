@@ -726,6 +726,7 @@
     left: 0;
     width: 4px;
     height: 100vh;
+    pointer-events: none;
     background: linear-gradient(
       to bottom,
       transparent 0%,

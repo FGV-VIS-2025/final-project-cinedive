@@ -232,6 +232,7 @@
             .attr("fill", isActive ? "#2c3e50" : colorframe)
             .attr("stroke", isActive ? highlightColor : "#34495e")
             .attr("stroke-width", isActive ? 3 : 1)
+            .style("pointer-events", "all")
             .style("cursor", "pointer")
             .style("transition", "all 0.3s ease")
             .on("mouseover", function() {
