@@ -219,9 +219,9 @@
 {#if data && selectedMovieTitle && subgraphPeople.length > 0}
   <div class="container">
     <div class="multiselect-panel">
-      <h2>Pessoas do filme</h2>
+      <h2>People of the movie</h2>
       <MultiSelect options={availablePeople} />
-      <p>Pessoas selecionadas:</p>
+      <p>Selected people:</p>
       <ul>
         {#each selectedPeople as person}
           <li style="color: {colorscale(person)}">{person}</li>
