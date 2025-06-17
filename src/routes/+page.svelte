@@ -225,8 +225,17 @@ Here each film strip represents the number of nominations while the golden part 
     </div>
   </div>
 
-  <!-- Step 4: Pesquisa -->
+  <!-- Step 4: antes de pesquisa -->
   <div class="step" data-step="4">
+    <div class="step-content">
+      <h2>An Individual to Global Explor</h2>
+      <p class="narrative">
+        Next, you can select a film of your choice. This selection will guide the following visualizations, allowing you to explore its connections and context within the wider cinematic landscape.
+      </p>
+    </div>
+  </div>
+  <!-- Step 5: Pesquisa -->
+  <div class="step" data-step="5">
     <div class="step-content">
       <h2>Search your Film</h2>
       <p class="narrative">
@@ -276,14 +285,14 @@ Here each film strip represents the number of nominations while the golden part 
   </div>
   
 
-  <!-- Step 5: Heatmap -->
-  <div class="step" data-step="5">
+  <!-- Step 6: Heatmap -->
+  <div class="step" data-step="6">
     <div class="step-content">
       <h2>Oscar Wins vs Nominations Heatmap</h2>
       <p class="narrative">
         Over the decades, the Academy Awards have witnessed countless triumphs. This heatmap lets you
         visualize how nominations and wins correlate: each cell groups films with similar numbers of
-        nominations and victories, revealing patterns in cinematic recognition.
+        nominations and victories, revealing patterns in cinematic recognition. You can click any search to obtain the films it contains. The selected movie button will reveal in what cell is your film.
       </p>
       <Heatmap loadMoviesFullData={loadMoviesFullData} mode={heatmapMode} movieTconst={selectedMovie} />
 
@@ -298,9 +307,9 @@ Here each film strip represents the number of nominations while the golden part 
     </div>
   </div>
 
-  <!-- Step 6: Grafo filmes -->
+  <!-- Step 7: Grafo filmes -->
   
-  <div class="step" data-step="6">
+  <div class="step" data-step="7">
     <div class="step-content">
       <h2>Explore Connections</h2>
       <p class="narrative">
@@ -324,9 +333,9 @@ Here each film strip represents the number of nominations while the golden part 
   
 
     <!-- ===================================
-         Step 7: Atores
+         Step 8: Atores
          =================================== -->
-  <div class="step" data-step="7">
+  <div class="step" data-step="8">
       <div class="step-content">
         <h2>Grafo just for People</h2>
         <!-- Narración Scrollytelling en inglés -->
