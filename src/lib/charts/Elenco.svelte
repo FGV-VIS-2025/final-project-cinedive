@@ -5,126 +5,196 @@
   import { pessoasSelecionadas } from '../../store/people';
   import * as d3 from 'd3';
 
-  export let selectedMovieId = null;
+  export let selectedMovieTitle = null;
 
-  let svgEl;
   let data = null;
-  let pessoasDoFilme = [];
+  let subgraphPeople = [];
   let availablePeople = [];
 
-  // Carga inicial
-  onMount(async () => {
-    data = await getPersonGraph();
-    filtrarPorFilme();
-  });
+  let svgEl;
+  let tooltipDiv;
 
-  // Refiltar cada vez que cambia la peli o los datos
-  $: if (data && selectedMovieId) {
-    filtrarPorFilme();
-  }
-
-  function filtrarPorFilme() {
-    if (!data || !selectedMovieId) {
-      pessoasDoFilme = [];
-      availablePeople = [];
-      return;
-    }
-    // Opción 1: Si las personas tienen campo movies (más eficiente)
-    if (data.nodes.some(n => n.type === "person" && Array.isArray(n.movies))) {
-      pessoasDoFilme = data.nodes.filter(
-        p => p.type === "person" && p.movies && p.movies.includes(selectedMovieId)
-      );
-    } else {
-      // Opción 2: Filtra por links
-      pessoasDoFilme = data.nodes.filter(
-        p => p.type === "person" &&
-          data.links.some(
-            l =>
-              (l.source === selectedMovieId && l.target === p.id) ||
-              (l.target === selectedMovieId && l.source === p.id)
-          )
-      );
-    }
-    availablePeople = pessoasDoFilme.map(p => p.name);
-    pessoasSelecionadas.clear();
-  }
-
-  // Personas seleccionadas (solo de este filme)
-  $: selectedPeople = Array.from($pessoasSelecionadas).filter(p => availablePeople.includes(p));
-
-  // Paleta para D3
   const paleta = [
     "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
     "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
   ];
-  $: colorscale = d3.scaleOrdinal()
-    .domain(selectedPeople)
-    .range(paleta);
 
-  // Grafo D3
-  $: if (data && selectedMovieId && svgEl) {
-    // Nodo de la película
-    const movieNode = data.nodes.find(n => n.id === selectedMovieId);
-    // Links directos entre peli y personas del filme
-    const links = data.links.filter(
-      l =>
-        (l.source === selectedMovieId && pessoasDoFilme.some(p => p.id === l.target)) ||
-        (l.target === selectedMovieId && pessoasDoFilme.some(p => p.id === l.source))
+  $: colorscale = d3.scaleOrdinal().domain(selectedPeople).range(paleta);
+
+  onMount(async () => {
+    data = await getPersonGraph();
+    buildSubgraphPeople();
+  });
+
+  $: if (data && selectedMovieTitle) {
+    buildSubgraphPeople();
+  }
+
+  function buildSubgraphPeople() {
+    if (!data || !selectedMovieTitle) {
+      subgraphPeople = [];
+      availablePeople = [];
+      pessoasSelecionadas.clear();
+      return;
+    }
+    const linksDoFilme = data.links.filter(
+      l => l.filmes && l.filmes.includes(selectedMovieTitle)
     );
-    // Nodos: la peli y solo las personas asociadas
-    const nodes = movieNode ? [movieNode, ...pessoasDoFilme] : [...pessoasDoFilme];
+    const ids = new Set();
+    linksDoFilme.forEach(l => {
+      ids.add(l.source);
+      ids.add(l.target);
+    });
+    subgraphPeople = data.nodes.filter(n => ids.has(n.id));
+    availablePeople = subgraphPeople.map(p => p.name);
+    pessoasSelecionadas.clear();
+  }
 
-    // Limpia SVG
+  
+  $: selectedPeople = Array.from($pessoasSelecionadas).filter(p => availablePeople.includes(p));
+
+  
+  function drag(simulation) {
+    return d3.drag()
+      .on("start", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on("drag", (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on("end", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      });
+  }
+
+  // ---- Grafo ----
+  $: if (data && selectedMovieTitle && selectedPeople.length > 0 && svgEl && tooltipDiv) {
+   
+    const selectedNodes = data.nodes.filter(n => selectedPeople.includes(n.name));
+    const selectedIds = new Set(selectedNodes.map(n => n.id));
+
+    const links = data.links.filter(
+      l => selectedIds.has(l.source) || selectedIds.has(l.target)
+    );
+
+    const connectedIds = new Set([...selectedIds]);
+    links.forEach(l => {
+      connectedIds.add(l.source);
+      connectedIds.add(l.target);
+    });
+    const nodes = data.nodes.filter(n => connectedIds.has(n.id));
+
+    //dibujo 
     d3.select(svgEl).selectAll('*').remove();
+
     const svg = d3.select(svgEl);
     const width = +svg.attr("width");
     const height = +svg.attr("height");
 
     const nodeById = new Map(nodes.map(n => [n.id, n]));
-    const resolvedLinks = links.map(l => ({
-      ...l,
-      source: nodeById.get(l.source),
-      target: nodeById.get(l.target)
-    }));
+    const resolvedLinks = links
+      .map(l => ({
+        ...l,
+        source: nodeById.get(l.source),
+        target: nodeById.get(l.target)
+      }))
+      .filter(l => l.source && l.target);
 
-    const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(resolvedLinks).id(d => d.id).distance(100))
-      .force("charge", d3.forceManyBody().strength(-100))
-      .force("center", d3.forceCenter(width / 2, height / 2));
+    // ---- Tooltip HTML overlay ----
+    const tip = d3.select(tooltipDiv)
+      .style("position", "fixed")
+      .style("pointer-events", "none")
+      .style("background", "#222")
+      .style("color", "#fff")
+      .style("padding", "6px 12px")
+      .style("border-radius", "8px")
+      .style("font-size", "13px")
+      .style("opacity", 0)
+      .style("z-index", 10000)
+      .style("box-shadow", "0 3px 16px rgba(0,0,0,0.35)");
 
-    // Links
+    // Links (tooltip)
     svg.append("g")
       .attr("stroke", "#aaa")
       .selectAll("line")
       .data(resolvedLinks)
       .join("line")
-      .attr("stroke-width", 2);
+      .attr("stroke-width", 2)
+      .on("mouseover", function (event, d) {
+        const filmes = d.filmes?.join(', ') || '';
+        tip.html(
+          `<div><strong>${d.source.name}</strong> &rarr; <strong>${d.target.name}</strong></div>` +
+          (filmes ? `<div style="font-size:11px;margin-top:2px;">Filmes: ${filmes}</div>` : '')
+        )
+        .style("left", (event.clientX + 12) + "px")
+        .style("top", (event.clientY - 12) + "px")
+        .style("opacity", 1);
+      })
+      .on("mousemove", function (event) {
+        tip
+        .style("left", (event.clientX + 12) + "px")
+        .style("top", (event.clientY - 12) + "px");
+      })
+      .on("mouseout", function () {
+        tip.style("opacity", 0);
+      });
 
-    // Nodes
+      
     svg.append("g")
       .selectAll("circle")
       .data(nodes)
       .join("circle")
-      .attr("r", d => d.type === "movie" ? 18 : 10)
-      .attr("fill", d =>
-        d.type === "movie" ? "#d4af37" : (selectedPeople.includes(d.name) ? colorscale(d.name) : "#888")
-      )
+      .attr("r", 10)
+      .attr("fill", d => selectedPeople.includes(d.name) ? colorscale(d.name) : "#888")
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
+      .call(drag(d3.forceSimulation())) // se reasigna abajo igual, no problema
+      .on("mouseover", function (event, d) {
+        tip.html(
+          `<div><strong>${d.name}</strong></div>
+           <div style="font-size:11px">${d.type ? d.type : ""}</div>
+           <div style="font-size:11px">${d.country ? d.country : ""}</div>`
+        )
+        .style("left", (event.clientX + 12) + "px")
+        .style("top", (event.clientY - 12) + "px")
+        .style("opacity", 1);
+      })
+      .on("mousemove", function (event) {
+        tip
+        .style("left", (event.clientX + 12) + "px")
+        .style("top", (event.clientY - 12) + "px");
+      })
+      .on("mouseout", function () {
+        tip.style("opacity", 0);
+      })
       .on("click", (event, d) => {
-        if (d.type === "person") pessoasSelecionadas.toggle(d.name);
+        pessoasSelecionadas.toggle(d.name);
       });
 
-    // Etiquetas
     svg.append("g")
       .selectAll("text")
-      .data(nodes)
+      .data(nodes.filter(d => selectedPeople.includes(d.name)))
       .join("text")
-      .text(d => d.type === "movie" ? d.title ?? d.name : d.name)
-      .attr("font-size", d => d.type === "movie" ? "16px" : "11px")
-      .attr("font-weight", d => d.type === "movie" ? "bold" : "normal")
+      .text(d => d.name)
+      .attr("font-size", "11px")
       .attr("dy", "-1.2em")
-      .attr("text-anchor", "middle");
+      .attr("text-anchor", "middle")
+      .attr("fill", "#fff");
+
+
+    // ---- Fuerzas ----
+    const simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(resolvedLinks).id(d => d.id).distance(100))
+      .force("charge", d3.forceManyBody().strength(-100))
+      .force("center", d3.forceCenter(width / 2, height / 2));
+
+      
+    svg.selectAll("circle").call(drag(simulation));
 
     simulation.on("tick", () => {
       nodes.forEach(d => {
@@ -136,23 +206,18 @@
         .attr("y1", d => d.source.y)
         .attr("x2", d => d.target.x)
         .attr("y2", d => d.target.y);
-
       svg.selectAll("circle")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
-
       svg.selectAll("text")
         .attr("x", d => d.x)
-        .attr("y", d => d.y - (d.type === "movie" ? 20 : 12));
+        .attr("y", d => d.y - 12);
     });
   }
 </script>
 
-{#if data && selectedMovieId && pessoasDoFilme.length > 0}
+{#if data && selectedMovieTitle && subgraphPeople.length > 0}
   <div class="container">
-    <div class="graph-panel">
-      <svg bind:this={svgEl} width={800} height={600}></svg>
-    </div>
     <div class="multiselect-panel">
       <h2>Pessoas do filme</h2>
       <MultiSelect options={availablePeople} />
@@ -162,9 +227,18 @@
           <li style="color: {colorscale(person)}">{person}</li>
         {/each}
       </ul>
+      {#if selectedPeople.length === 0}
+        <p style="color: #aaa; margin-top: 1em;">Selecione pessoas para visualizar o grafo.</p>
+      {/if}
     </div>
+    {#if selectedPeople.length > 0}
+      <div class="graph-panel" style="position:relative;">
+        <svg bind:this={svgEl} width={800} height={600}></svg>
+        <div bind:this={tooltipDiv} class="tooltip"></div>
+      </div>
+    {/if}
   </div>
-{:else if (data && selectedMovieId)}
+{:else if (data && selectedMovieTitle)}
   <p>Este filme não tem pessoas associadas.</p>
 {:else}
   <p>Carregando dados...</p>
@@ -182,5 +256,12 @@
   }
   .graph-panel {
     flex-grow: 1;
+    position: relative;
+  }
+  .tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 1000;
+    transition: opacity 0.13s;
   }
 </style>
