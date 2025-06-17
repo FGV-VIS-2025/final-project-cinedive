@@ -81,10 +81,11 @@
 
   <input
     type="text"
-    placeholder="Search some species"
+    placeholder="Search people"
     bind:value={searchQuery}
     on:focus={() => isOpen = true}
   />
+
 
   {#if isOpen}
     <div class="dropdown">
