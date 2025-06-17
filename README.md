@@ -4,6 +4,8 @@ Uma exploração interativa e visual do universo dos filmes indicados ao Oscar.
 
 ![CineDive Banner](banner.png) <!-- Coloque um banner ilustrativo aqui se desejar -->
 
+![Teaser](https://drive.google.com/file/d/150qD2pl9viuy5EizcwdMgWtjAamKHxEx/view?usp=drive_link)
+
 ## Sobre o Projeto
 
 O **CineDive** é uma plataforma de visualização de dados voltada para revelar padrões, conexões e trajetórias no cinema premiado pela Academia (Oscar). A aplicação permite tanto análises globais (big picture) quanto explorações detalhadas de filmes, pessoas e colaborações.  
@@ -56,4 +58,5 @@ O pipeline de dados é expansível: para atualizar com novos filmes ou premiaç�
 
 
 # see the ![report](https://github.com/FGV-VIS-2025/final-project-cinedive/blob/main/vis_project.pdf)
+# Watch the ![report](https://drive.google.com/file/d/1hkn5cqU7QCwwJ6g5RX6KIlJ8yY3hmAt-/view?usp=drive_link)
 
