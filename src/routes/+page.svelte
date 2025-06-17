@@ -30,6 +30,7 @@
 
   let worldGeoJson;
   let data_for_fitas;
+  let temp_data;
   let GlobalData;
   let heatmapMode = 'exploration';
 
@@ -180,8 +181,45 @@
     </div>
   </div>
 
-  <!-- Step 2: Search your Film -->
+  <!-- Step 2: Mapa fitas -->
   <div class="step" data-step="2">
+    <div class="step-content">
+      <h2>Choose your ribbons</h2>
+      <p class="narrative">
+        From Hollywood to Bollywood and beyond, every region in the world has its own cinematic fingerprint.
+        Explore the world map and select the “ribbons” that pique your curiosity.
+      </p>
+      <div class="horizontal-layout">
+        <div class="map-wrapper">
+          {#if worldGeoJson && GlobalData}
+            <WorldMap geoData={worldGeoJson} data={GlobalData} />
+          {/if}
+        </div>
+        <div class="step-info">
+          <p class="step-description">
+            Adjust filters and choose the countries that shaped cinematic trends—from golden age classics
+            to modern cult favorites.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Relogio -->
+  <div class="step" data-step="3">
+    <div class="step-content">
+      <h2>Oscar Timeline</h2>
+      <p class="narrative">
+        See how Oscar recognition evolved over time and which decades marked major shifts in cinema.
+      </p>
+      {#if GlobalData}
+        <Relogio data={GlobalData} width={500} />
+      {/if}
+    </div>
+  </div>
+
+  <!-- Step 4: Pesquisa -->
+  <div class="step" data-step="4">
     <div class="step-content">
       <h2>Search your Film</h2>
       <p class="narrative">
@@ -229,53 +267,7 @@
       {/if}
     </div>
   </div>
-
-  <!-- Step 3: Network Graph -->
-  <div class="step" data-step="3">
-    <div class="step-content">
-      <h2>Explore Connections</h2>
-      <p class="narrative">
-        Now that you've picked a film, let's explore its network. Who were the collaborators? Which directors,
-        writers, and actors made it iconic? Dive into the connections that shape cinematic history.
-      </p>
-
-      {#if selectedMovie}
-        <div class="network-graph-wrapper">
-          <h3>
-            Network of <span style="color: var(--gold);">{selectedMovieInfo.primaryTitle}</span>
-          </h3>
-          <FilmNetwork movieId={selectedMovie} />
-          <button class="reset-btn" on:click={handleBack}>
-            ← Change selection
-          </button>
-        </div>
-      {/if}
-    </div>
-  </div>
-
-  <!-- Step 4: Map -->
-  <div class="step" data-step="4">
-    <div class="step-content">
-      <h2>Choose your ribbons</h2>
-      <p class="narrative">
-        From Hollywood to Bollywood and beyond, every region in the world has its own cinematic fingerprint.
-        Explore the world map and select the “ribbons” that pique your curiosity.
-      </p>
-      <div class="horizontal-layout">
-        <div class="map-wrapper">
-          {#if worldGeoJson && GlobalData}
-            <WorldMap geoData={worldGeoJson} data={GlobalData} />
-          {/if}
-        </div>
-        <div class="step-info">
-          <p class="step-description">
-            Adjust filters and choose the countries that shaped cinematic trends—from golden age classics
-            to modern cult favorites.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
+  
 
   <!-- Step 5: Heatmap -->
   <div class="step" data-step="5">
@@ -299,21 +291,33 @@
     </div>
   </div>
 
-  <!-- Step 6: Timeline -->
+  <!-- Step 6: Grafo filmes -->
+  
   <div class="step" data-step="6">
     <div class="step-content">
-      <h2>Oscar Timeline</h2>
+      <h2>Explore Connections</h2>
       <p class="narrative">
-        See how Oscar recognition evolved over time and which decades marked major shifts in cinema.
+        Now that you've picked a film, let's explore its network. Who were the collaborators? Which directors,
+        writers, and actors made it iconic? Dive into the connections that shape cinematic history.
       </p>
-      {#if GlobalData}
-        <Relogio data={GlobalData} width={500} />
+
+      {#if selectedMovie}
+        <div class="network-graph-wrapper">
+          <h3>
+            Network of <span style="color: var(--gold);">{selectedMovieInfo.primaryTitle}</span>
+          </h3>
+          <FilmNetwork movieId={selectedMovie} />
+          <button class="reset-btn" on:click={handleBack}>
+            ← Change selection
+          </button>
+        </div>
       {/if}
     </div>
   </div>
+  
 
     <!-- ===================================
-         Step 7: Oscar Wins vs Nominations Heatmap
+         Step 7: Atores
          =================================== -->
   <div class="step" data-step="7">
       <div class="step-content">
