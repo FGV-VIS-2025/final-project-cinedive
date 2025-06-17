@@ -184,11 +184,7 @@
   <!-- Step 2: Mapa fitas -->
   <div class="step" data-step="2">
     <div class="step-content">
-      <h2>Choose your ribbons</h2>
-      <p class="narrative">
-        From Hollywood to Bollywood and beyond, every region in the world has its own cinematic fingerprint.
-        Explore the world map and select the “ribbons” that pique your curiosity.
-      </p>
+      <h2>Global cinematic Map</h2>
       <div class="horizontal-layout">
         <div class="map-wrapper">
           {#if worldGeoJson && GlobalData}
@@ -197,8 +193,9 @@
         </div>
         <div class="step-info">
           <p class="step-description">
-            Adjust filters and choose the countries that shaped cinematic trends—from golden age classics
-            to modern cult favorites.
+            It shows how Oscar nominations and awards are distributed around the world, highlighting the sovereignty of Hollywood.
+
+Here each film strip represents the number of nominations while the golden part of the strip shows the proportion of nominations awarded against those not awarded on the green side.
           </p>
         </div>
       </div>
@@ -208,13 +205,23 @@
   <!-- Step 3: Relogio -->
   <div class="step" data-step="3">
     <div class="step-content">
-      <h2>Oscar Timeline</h2>
-      <p class="narrative">
-        See how Oscar recognition evolved over time and which decades marked major shifts in cinema.
-      </p>
-      {#if GlobalData}
-        <Relogio data={GlobalData} width={500} />
-      {/if}
+      <h2>Radial data visualization</h2>
+      <div class="horizontal-layout">
+        <div>
+          
+        {#if GlobalData}
+          <Relogio data={GlobalData} width={500} />
+        {/if}
+        </div>
+        <div>
+          Here we have a radial graph where you can freely explore the relationships between 4 variables: year, duration in minutes, votes, and average score.
+
+           You can also choose to choose a heatmap or a simple plot with opacity
+
+        </div>
+
+      </div>
+      
     </div>
   </div>
 
